@@ -7,6 +7,7 @@ import { StreetLevel } from './levels/level1.js';
 import { AlienLevel } from './levels/level2.js';
 import { ArchitectLevel } from './levels/level3.js';
 import { PlayerHealth } from './player/PlayerHealth.js';
+import { AxiomTrueForm } from './player/AxiomTrueForm.js';
 import { attachChestArtifact } from './player/chestArtifact.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { loadAllAudio } from './audio/loadAudio.js';
@@ -84,6 +85,7 @@ let _lastDeathPos = null;
 
 const playerHealth = new PlayerHealth({
   onDeath: () => {
+    trueForm.abort();   // dying ends the merge instantly
     _lastDeathPos = player.pos.clone();
   },
   onRespawn: (spawnPos) => {
@@ -289,6 +291,33 @@ const dash = {
   enabled: false,     // disabled until Level 2+
 };
 
+// ── Axiom True Form — the Level 3 payoff transformation (Q key) ──
+// Owns its phase machine, visuals and buffs; main.js feeds it dt,
+// scales the world by trueForm.timeScale and multiplies movement,
+// damage and cooldowns by its getters while she is merged.
+const trueForm = new AxiomTrueForm({
+  scene,
+  player,
+  playerHealth,
+  dash,
+  spawnTrail: spawnDashTrail,
+  getSoriniRoot: () => soriniGroup.children[0] || null,
+  getSoriniGroup: () => soriniGroup,
+  getChestArtifact: () => chestArtifact,
+  isFightActive: () => {
+    const l = window.__level;
+    if (!l || !l.architect ||
+        typeof l.architect.canBeHit !== 'function' || !l.architect.canBeHit()) {
+      return false;
+    }
+    // Axiom only fully merges after the guardians have fallen —
+    // the form is reserved for the Architect fight proper.
+    return l.guardiansDefeated === true ||
+      (Array.isArray(l.guardians) && l.guardians.length === 0);
+  },
+});
+window.__trueForm = trueForm;
+
 // Arrow keys mirror WASD — same movement, nothing else changes.
 const ARROW_TO_KEY = { ArrowUp: 'KeyW', ArrowLeft: 'KeyA', ArrowDown: 'KeyS', ArrowRight: 'KeyD' };
 
@@ -348,6 +377,11 @@ addEventListener('keydown', e => {
     _triggerDash();
     return;   // consume the space so it doesn't also trigger a jump
   }
+
+  // ── Axiom True Form: Q, gated to the Architect fight ──
+  if (e.code === 'KeyQ') {
+    trueForm.tryActivate();
+  }
   if (e.code === 'KeyR') switchLevel(current);
   if (e.code === 'Digit1') switchLevel(1);
   if (e.code === 'Digit2') switchLevel(2);
@@ -364,21 +398,21 @@ addEventListener('keydown', e => {
   }
 
   if (e.code === 'KeyF' && attackCooldown.f <= 0) {
-    attackCooldown.f = 0.7;
+    attackCooldown.f = 0.7 * trueForm.attackRateMult;
     playSoriniAction('punch', false);
     _triggerAttack();
     _damageEnemiesIfClose(1);
     audioManager.playSfx('punch_hit');
   }
   if (e.code === 'KeyG' && attackCooldown.g <= 0) {
-    attackCooldown.g = 0.8;
+    attackCooldown.g = 0.8 * trueForm.attackRateMult;
     playSoriniAction('kick', false);
     _triggerAttack();
     _damageEnemiesIfClose(2);
     audioManager.playSfx('punch_hit');
   }
   if (e.code === 'KeyH' && attackCooldown.h <= 0) {
-    attackCooldown.h = 0.7;
+    attackCooldown.h = 0.7 * trueForm.attackRateMult;
     playSoriniAction('hook', false);
     _triggerAttack();
     _damageEnemiesIfClose(2);
@@ -396,6 +430,7 @@ function _triggerAttack() {
 
 function _damageEnemiesIfClose(damage) {
   if (!level) return;
+  damage = damage * trueForm.damageMult;
 
   if (level.commander && level.commander.alive) {
     const dist = level.commander.getPosition().distanceTo(player.pos);
@@ -645,6 +680,7 @@ function switchLevel(n) {
 
   current = n; phase = 1;
   _lastDeathPos = null;
+  trueForm.reset();   // never carry the merge across a level switch
 
   try {
     level = new LEVELS[n](scene, renderer);
@@ -789,7 +825,7 @@ const _pb = new THREE.Box3(_pMin, _pMax);
 
 function stepPlayer(dt) {
   const isSprint = keys.ShiftLeft || keys.ShiftRight;
-  const sp = isSprint ? SPRINT : SPEED;
+  const sp = (isSprint ? SPRINT : SPEED) * trueForm.speedMult;
 
   // ── Rotation ──
   // A/D rotate Sorini ONLY (camera stays put unless mouse-look)
@@ -869,6 +905,11 @@ function tick() {
   const dt = Math.min(timer.getDelta(), 0.05);
   const t  = timer.getElapsed();
 
+  // True Form phases run on REAL time; everything world-side below
+  // uses dtW, which the form slows during its activation moment.
+  trueForm.updateState(dt);
+  const dtW = dt * trueForm.timeScale;
+
   if (!level) return;
 
   // Freeze the whole world while the pause menu is open — the last
@@ -877,22 +918,26 @@ function tick() {
 
   playerHealth.update(dt);
 
-  stepPlayer(dt);
-  if (soriniMixer) soriniMixer.update(dt);
+  stepPlayer(dtW);
+  if (soriniMixer) soriniMixer.update(dtW);
 
   // ── Axiom chest reactor — always-on breathing glow ──
   // Mirrors the main-menu pulse; axiomLevel scales it for the Axiom
   // Dash flash and the Level-1 dialogue pulse.
   if (chestArtifact) {
-    const p = 0.6 + Math.sin(t * 2) * 0.4;
-    chestArtifact.ring.material.emissiveIntensity = (1.8 + p * 1.2) * axiomLevel;
-    chestArtifact.core.material.emissiveIntensity = (3.0 + p * 1.3) * axiomLevel;
-    chestArtifact.light.intensity = (1.8 + p * 2.0) * axiomLevel;
-    chestArtifact.coreSpin.rotation.z += 0.02;
+    if (trueForm.tickArtifact(chestArtifact, t, dtW)) {
+      // The merged reactor drives itself while the form is up.
+    } else {
+      const p = 0.6 + Math.sin(t * 2) * 0.4;
+      chestArtifact.ring.material.emissiveIntensity = (1.8 + p * 1.2) * axiomLevel;
+      chestArtifact.core.material.emissiveIntensity = (3.0 + p * 1.3) * axiomLevel;
+      chestArtifact.light.intensity = (1.8 + p * 2.0) * axiomLevel;
+      chestArtifact.coreSpin.rotation.z += 0.02;
+    }
   }
 
   if (typeof level.update === 'function') {
-    try { level.update(dt, t, player); }
+    try { level.update(dtW, t, player); }
     catch (e) { console.warn('level.update error', e); }
   }
 
@@ -937,16 +982,24 @@ function tick() {
       if (camera.position.y < camGround) camera.position.y = camGround;
     }
     camera.lookAt(player.pos.x, player.pos.y + CAM_LOOK_UP, player.pos.z);
+
+    // True Form pull-in — lerp the FOV, never snap it
+    const wantFov = 75 * trueForm.fovScale;
+    if (Math.abs(camera.fov - wantFov) > 0.01) {
+      camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 6);
+      camera.updateProjectionMatrix();
+    }
   }
 
   soriniGroup.position.set(player.pos.x, player.pos.y, player.pos.z);
   soriniGroup.rotation.y = player.yaw;
+  trueForm.updateVisuals(dtW, t);
 
-  for (const k of ['f','g','h']) if (attackCooldown[k] > 0) attackCooldown[k] -= dt;
-  if (dash.cooldown > 0) dash.cooldown -= dt;
-  if (dash.activeTimer > 0) dash.activeTimer -= dt;
+  for (const k of ['f','g','h']) if (attackCooldown[k] > 0) attackCooldown[k] -= dtW;
+  if (dash.cooldown > 0) dash.cooldown -= dtW;
+  if (dash.activeTimer > 0) dash.activeTimer -= dtW;
 
-  updateDashTrails(dt);
+  updateDashTrails(dtW);
 
   const isSprint  = keys.ShiftLeft || keys.ShiftRight;
   const isMovingW = keys.KeyW || keys.KeyS;
@@ -959,6 +1012,12 @@ function tick() {
     soriniCurrentAction.isRunning() &&
     soriniCurrentAction.loop === THREE.LoopOnce;
   attackLock = attackStillPlaying;
+
+  // Merged Sorini fights faster — the clip itself speeds up so the
+  // cooldown cut and the animation stay in sync.
+  if (soriniCurrentAction) {
+    soriniCurrentAction.setEffectiveTimeScale(trueForm.active ? 1.4 : 1);
+  }
 
   if (soriniMixer && !attackStillPlaying) {
     if (!player.grounded)             playSoriniAction('jump');
@@ -1202,6 +1261,7 @@ function restartToMenu() {
   dash.enabled = false;
   dash.cooldown = 0;
   dash.activeTimer = 0;
+  trueForm.reset();
   attackCooldown.f = 0; attackCooldown.g = 0; attackCooldown.h = 0;
   attackLock = false;
   for (const k of Object.keys(keys)) keys[k] = false;

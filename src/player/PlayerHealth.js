@@ -7,6 +7,7 @@ export class PlayerHealth {
     this.maxHp = 100;
     this.hp = 100;
     this.dead = false;
+    this.invincible = false;   // held open by AxiomTrueForm while merged
     this.respawnTimer = 0;
     this._hurtCooldown = 0;
     this._iframeDuration = 0.7;
@@ -94,7 +95,7 @@ export class PlayerHealth {
     // PUBLIC API
     // =========================================================
     takeDamage(amount) {
-        if (this.dead || this._hurtCooldown > 0) return false;
+        if (this.dead || this.invincible || this._hurtCooldown > 0) return false;
 
         this._hurtCooldown = this._iframeDuration;
         this.hp = Math.max(0, this.hp - amount);
@@ -129,6 +130,7 @@ export class PlayerHealth {
     // (used when restarting the game back to the main menu)
     reset() {
         this.dead = false;
+        this.invincible = false;
         this.hp = this.maxHp;
         this._hurtCooldown = 0;
         this.respawnTimer = 0;
