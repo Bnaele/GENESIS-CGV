@@ -19,13 +19,13 @@ const GRAV = 30;
 const GUARDIAN_STATS = {
   blade: {
     health: 20, damage: 15, speed: 6.0,
-    attackRange: 2.5, windup: 0.45, tail: 0.55, cooldown: 1.3,
-    tint: 0xcc2233, scale: 1.1,
+    attackRange: 2.5, windup: 0.55, tail: 0.65, cooldown: 1.4,
+    slot: 1.9, tint: 0xcc2233, scale: 1.1,
   },
   fist: {
-    health: 30, damage: 25, speed: 3.0,
-    attackRange: 3.0, windup: 0.85, tail: 0.75, cooldown: 1.8,
-    tint: 0x2266cc, scale: 1.25,
+    health: 30, damage: 25, speed: 4.2,
+    attackRange: 3.0, windup: 0.35, tail: 0.5, cooldown: 1.2,
+    slot: 2.1, tint: 0x2266cc, scale: 1.25,
   },
 };
 
@@ -38,10 +38,35 @@ const GUARDIAN_BASE = './assets/models/enemy/';
 const GUARDIAN_CLIP_FILES = {
   idle:    'grunt_idle.fbx',
   move:    'running.fbx',
-  attack1: 'boxing.fbx',
-  attack2: 'kicking.fbx',
   hit:     'reaction.fbx',
   die:     'dying.fbx',
+};
+
+// Combat kits — the red blade guardian borrows the Architect's
+// great-sword set; the blue fist guardian borrows the Enforcer's
+// strike set. Clips are authored for the Dreyar/Jones rigs, so each
+// is remapped onto the grunt skeleton at load (remapClip below —
+// same technique architect.js and enforcer.js use).
+const GUARDIAN_ATTACK_KITS = {
+  blade: {
+    base: './assets/models/enemy/',
+    files: {
+      attack1: 'architect_stable_sword_inward_slash.fbx',
+      attack2: 'architect_stable_sword_outward_slash.fbx',
+      attack3: 'architect_hurricane_kick.fbx',
+      attack4: 'architect_great_sword_attack.fbx',
+    },
+  },
+  fist: {
+    base: './assets/models/enemy/',
+    files: {
+      attack1: 'enforcer_left_punch.fbx',
+      attack2: 'enforcer_right_punch.fbx',
+      attack3: 'enforcer_cross_punch.fbx',
+      attack4: 'enforcer_elbow_punch.fbx',
+      attack5: 'enforcer_roundhouse_kick.fbx',
+    },
+  },
 };
 
 let _guardianAssetsPromise = null;
@@ -72,6 +97,38 @@ function stripRootMotion(clip) {
   return clip;
 }
 
+// Bone-name remap — matches clip track names to the model's actual
+// bone names so clips authored for other rigs (Dreyar/Jones) drive
+// the grunt skeleton. Shared idiom with architect.js / enforcer.js.
+function normalizeBoneName(n) {
+  return n.replace(/^mixamorig:?/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+function remapClip(clip, model) {
+  if (!clip || !model) return clip;
+  const exact = new Map();
+  const norm  = new Map();
+  model.traverse((o) => {
+    if (!o.name) return;
+    if (!exact.has(o.name)) exact.set(o.name, o.name);
+    const n = normalizeBoneName(o.name);
+    if (!norm.has(n)) norm.set(n, o.name);
+  });
+  const kept = [];
+  for (const track of clip.tracks) {
+    const dot = track.name.lastIndexOf('.');
+    const nodeName = track.name.slice(0, dot);
+    const prop = track.name.slice(dot);
+    const target = exact.get(nodeName) || norm.get(normalizeBoneName(nodeName));
+    if (target) {
+      track.name = target + prop;
+      kept.push(track);
+    }
+  }
+  clip.tracks = kept;
+  return clip;
+}
+
 function getGuardianAssets() {
   if (_guardianAssetsPromise) return _guardianAssetsPromise;
   _guardianAssetsPromise = (async () => {
@@ -90,7 +147,23 @@ function getGuardianAssets() {
       })
     );
 
-    return { baseFbx, clips };
+    const attackKits = {};
+    await Promise.all(
+      Object.entries(GUARDIAN_ATTACK_KITS).map(async ([kind, kit]) => {
+        const kitClips = {};
+        await Promise.all(
+          Object.entries(kit.files).map(async ([key, file]) => {
+            const fbx = await loadFbx(loader, kit.base + file);
+            if (fbx?.animations?.[0]) {
+              kitClips[key] = stripRootMotion(fbx.animations[0]);
+            }
+          })
+        );
+        attackKits[kind] = kitClips;
+      })
+    );
+
+    return { baseFbx, clips, attackKits };
   })();
   return _guardianAssetsPromise;
 }
@@ -161,7 +234,9 @@ export class Guardian extends Enemy {
     this.guardianCooldown    = stats.cooldown;
 
     const side = kind === 'blade' ? -1 : 1;
-    this.attackOffset.set(side * 2.6, 0, 0);
+    // Flank slot INSIDE attack range — a slot the guardian can stand
+    // on while still short of swing distance deadlocks the approach.
+    this.attackOffset.set(side * stats.slot, 0, 0);
 
     this.isGuardian = true;
     this.dead = false;
@@ -229,6 +304,16 @@ export class Guardian extends Enemy {
       this.actions[key] = this.mixer.clipAction(clip);
     }
 
+    // Kind-specific combat kit — remapped onto THIS clone so the
+    // Architect/Enforcer-authored clips bind to the grunt skeleton.
+    this._attackNames = [];
+    const kit = assets.attackKits[this.kind] || {};
+    for (const [key, clip] of Object.entries(kit)) {
+      if (!clip) continue;
+      this.actions[key] = this.mixer.clipAction(remapClip(clip, fbx));
+      this._attackNames.push(key);
+    }
+
     if (this.state === STATE.IDLE) this._playAction('idle');
     this._attachWeapon();
   }
@@ -245,8 +330,10 @@ export class Guardian extends Enemy {
   _playAction(name, loop = true) {
     this._desiredAction = { name, loop };
     let next = this.actions[name];
-    if (!next && (name === 'attack1' || name === 'attack2'))
-      next = this.actions.attack1 || this.actions.attack2;
+    if (!next && /^attack/.test(name)) {
+      next = this.actions[this._attackNames?.[0]]
+          || this.actions.attack1 || this.actions.attack2;
+    }
     if (!next) return;
 
     if (next === this.currentAction) {
@@ -281,9 +368,13 @@ export class Guardian extends Enemy {
   }
 
   _startSwing() {
-    const pick = this._lastAttack === 'attack1' ? 'attack2'
-               : this._lastAttack === 'attack2' ? 'attack1'
-               : (Math.random() > 0.5 ? 'attack1' : 'attack2');
+    // Rotate through the guardian's combat kit so the fight never
+    // loops one move (Architect slashes for blade, Enforcer jabs
+    // and kicks for fist).
+    const names = (this._attackNames && this._attackNames.length)
+      ? this._attackNames : ['attack1', 'attack2'];
+    const idx  = names.indexOf(this._lastAttack);
+    const pick = names[(idx + 1) % names.length];
     this._lastAttack = pick;
     this._playAction(pick, false);
 
@@ -335,41 +426,59 @@ export class Guardian extends Enemy {
     if (this.mixer) this.mixer.update(dt);
     if (this.state === STATE.DEAD) return;
 
-    const tx = playerPos.x + this.attackOffset.x;
-    const tz = playerPos.z + this.attackOffset.z;
-    const dx = tx - this.group.position.x;
-    const dz = tz - this.group.position.z;
-    if (Math.abs(dx) > 0.1 || Math.abs(dz) > 0.1) {
-      this.group.rotation.y = Math.atan2(dx, dz);
-    }
+    // ── Combat distances ──
+    // Attack decisions key on distance to the PLAYER. The flank slot
+    // (playerPos + attackOffset) only steers movement: slot points
+    // can sit on the far side of the player, where pushOutOfCircle
+    // used to trap a chasing guardian at the barrier — running in
+    // place forever, never reaching swing range (the "invisible
+    // wall" bug where neither side could land a hit).
+    const pdx = playerPos.x - this.group.position.x;
+    const pdz = playerPos.z - this.group.position.z;
+    const playerDist = Math.hypot(pdx, pdz);
+    const stopDist  = this.guardianAttackRange * 0.8;
+    const abortDist = this.guardianAttackRange + 1.5;
+
+    const dx = playerPos.x + this.attackOffset.x - this.group.position.x;
+    const dz = playerPos.z + this.attackOffset.z - this.group.position.z;
     const dist = Math.hypot(dx, dz);
 
+    // Face the player once in combat range; the flank slot while closing.
+    const fx = playerDist <= abortDist ? pdx : dx;
+    const fz = playerDist <= abortDist ? pdz : dz;
+    if (Math.abs(fx) > 0.1 || Math.abs(fz) > 0.1) {
+      this.group.rotation.y = Math.atan2(fx, fz);
+    }
+
     if (this.state === STATE.WALKING) {
-      const chaseStart = this._chasing ? 2.0 : 2.6;
-      if (dist > chaseStart) {
-        this._chasing = true;
-        const dir = new THREE.Vector3(dx, 0, dz).normalize();
-        this.group.position.addScaledVector(dir, this.moveSpeed * dt);
+      if (playerDist > stopDist) {
+        // Close in — head for the flank slot, but beeline the player
+        // when the slot is behind them or already reached: a slot
+        // outside stop range must never leave us parked short.
+        const stuck  = playerDist < dist - 0.5;
+        const atSlot = dist < 0.35;
+        const mx = (stuck || atSlot) ? pdx : dx;
+        const mz = (stuck || atSlot) ? pdz : dz;
+        const len = Math.hypot(mx, mz) || 1;
+        this.group.position.x += (mx / len) * this.moveSpeed * dt;
+        this.group.position.z += (mz / len) * this.moveSpeed * dt;
         this._playAction('move');
+      } else if (this.recoverTimer > 0) {
+        this.recoverTimer -= dt;
+        this._playAction('idle');
+      } else if (this.gate && this.gate.current >= this.gate.max) {
+        this._playAction('idle');
       } else {
-        this._chasing = false;
-        if (this.recoverTimer > 0) {
-          this.recoverTimer -= dt;
-          this._playAction('idle');
-        } else if (this.gate && this.gate.current >= this.gate.max) {
-          this._playAction('idle');
-        } else {
-          if (this.gate) { this.gate.current++; this._holdsSlot = true; }
-          this.state = STATE.ATTACKING;
-          this._startSwing();
-        }
+        if (this.gate) { this.gate.current++; this._holdsSlot = true; }
+        this.state = STATE.ATTACKING;
+        this._startSwing();
       }
     } else if (this.state === STATE.ATTACKING) {
-      if (dist > 3.5) {
+      if (playerDist > abortDist) {
+        // Player broke away — cancel the swing and give the slot back
         this._releaseSlot();
         this.swingLanded = false;
         this.state = STATE.WALKING;
-        this._chasing = true;
         this._playAction('move');
       } else {
         this.swingTimer -= dt;
@@ -377,12 +486,12 @@ export class Guardian extends Enemy {
         this.recoverTimer -= dt;
         if (this.recoverTimer <= 0) {
           this._releaseSlot();
-          if (dist <= 2.6 && (!this.gate || this.gate.current < this.gate.max)) {
+          if (playerDist <= this.guardianAttackRange &&
+              (!this.gate || this.gate.current < this.gate.max)) {
             if (this.gate) { this.gate.current++; this._holdsSlot = true; }
             this._startSwing();
           } else {
             this.state = STATE.WALKING;
-            this._chasing = true;
             this._playAction('move');
           }
         }

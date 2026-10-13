@@ -1260,8 +1260,9 @@ export class ArchitectLevel {
   createGuardianSpawns() {
     const chamberY = this._F.floor;  // the hall's one walking level
 
-    // Attack gate — max 1 guardian attacking at once
-    this.guardianGate = { current: 0, max: 1 };
+    // Attack gate — both guardians may press the attack (with only
+    // two, a max of 1 left one permanently idling out of the fight)
+    this.guardianGate = { current: 0, max: 2 };
 
     // Blade — left of the chamber
     const blade = new Guardian(
@@ -1769,11 +1770,15 @@ export class ArchitectLevel {
       try {
         g.update(dt, player.pos);
 
-        // Guardian attacks — roll damage when a swing lands
+        // Guardian attacks — roll damage when a swing lands (XZ
+        // distance: 3D distanceTo() missed hits across small Y
+        // offsets between the guardian's ground level and the player)
         if (g.swingLanded) {
           g.swingLanded = false;
           const reach = g.kind === 'fist' ? 3.2 : 2.8;
-          if (g.group.position.distanceTo(player.pos) < reach) {
+          const gdx = g.group.position.x - player.pos.x;
+          const gdz = g.group.position.z - player.pos.z;
+          if (Math.hypot(gdx, gdz) < reach) {
             if (this.onDamagePlayer) this.onDamagePlayer(g.guardianDamage || 10);
           }
         }

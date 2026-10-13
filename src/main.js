@@ -440,6 +440,17 @@ function _damageEnemiesIfClose(damage) {
     level.grunts.checkHit(player.pos, 2.2, damage);
   }
 
+  // Level 3 guardians — previously unhittable: no branch here at all.
+  // Both guardians in range take the hit (it's a 2v1, not a duel).
+  if (Array.isArray(level.guardians)) {
+    for (const g of level.guardians) {
+      if (!g || g._disposed || g.dead) continue;
+      const dx = g.group.position.x - player.pos.x;
+      const dz = g.group.position.z - player.pos.z;
+      if (Math.hypot(dx, dz) < 2.6) g.takeDamage(damage);
+    }
+  }
+
   if (level.enforcer && level.enforcer.alive) {
     const dist = level.enforcer.getPosition().distanceTo(player.pos);
     if (dist < 2.0) level.enforcer.takeDamage(damage);
