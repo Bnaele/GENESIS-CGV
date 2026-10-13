@@ -411,9 +411,13 @@ export class StreetLevel {
 
     for (let i = 0; i < wave.count; i++) {
       setTimeout(() => {
+        // A level switch disposes the grunt manager while these spawn
+        // timers are still pending — bail out instead of crashing on
+        // null (same guard as level2's _unleashMinions).
+        if (!this.grunts) return;
         this.grunts.spawnWave(spawnPos, 1);
         const newGrunt = this.grunts.grunts[this.grunts.grunts.length - 1];
-        if (newGrunt) this.minionHealthBar.register(newGrunt);
+        if (newGrunt && this.minionHealthBar) this.minionHealthBar.register(newGrunt);
         this.waveSpawnPending--;
       }, i * 400);
     }
@@ -466,6 +470,9 @@ export class StreetLevel {
         if (this._onDamagePlayer) this._onDamagePlayer(dmg);
       },
       onMinionSpawn: (count) => {
+        // Guard against a level switch landing between the Commander's
+        // decision to spawn and this callback running.
+        if (!this.grunts || !this.minionHealthBar) return;
         this.grunts.spawnWave(spawnPos, count);
         for (const g of this.grunts.grunts) {
           this.minionHealthBar.register(g);
