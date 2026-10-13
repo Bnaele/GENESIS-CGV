@@ -38,6 +38,8 @@ const GUARDIAN_BASE = './assets/models/enemy/';
 const GUARDIAN_CLIP_FILES = {
   idle:    'grunt_idle.fbx',
   move:    'running.fbx',
+  attack1: 'boxing.fbx',   // shared fallback strikes — a kind kit that
+  attack2: 'kicking.fbx',  // fails to bind must never leave a T-pose
   hit:     'reaction.fbx',
   die:     'dying.fbx',
 };
@@ -82,15 +84,16 @@ function loadFbx(loader, path) {
   });
 }
 
-function stripRootMotion(clip) {
+function stripRootMotion(clip, flatY = false) {
   if (!clip || !clip.tracks) return clip;
   for (const track of clip.tracks) {
     if (!/Hips/i.test(track.name) || !/\.position/i.test(track.name)) continue;
     const v = track.values;
     if (!v || v.length < 3) continue;
-    const x0 = v[0], z0 = v[2];
+    const x0 = v[0], y0 = flatY ? v[1] : null, z0 = v[2];
     for (let i = 0; i < v.length; i += 3) {
       v[i] = x0;
+      if (flatY) v[i + 1] = y0; // kit moves stay grounded — no leaps
       v[i + 2] = z0;
     }
   }
@@ -99,12 +102,19 @@ function stripRootMotion(clip) {
 
 // Bone-name remap — matches clip track names to the model's actual
 // bone names so clips authored for other rigs (Dreyar/Jones) drive
-// the grunt skeleton. Shared idiom with architect.js / enforcer.js.
+// the grunt skeleton. Shared idiom with architect.js / enforcer.js,
+// hardened: FBXLoader strips the colon namespace ("mixamorig:Hips"
+// loads as "mixamorigHips"), and newer Mixamo exports number the
+// prefix ("mixamorig10:Hips" → "mixamorig10Hips") — the Enforcer
+// kit uses that form, and the "10" poisoned the plain prefix-strip
+// (every track dropped, guardian held bind pose = T-pose). Strip
+// anything up to and including "mixamorig" + its version digits.
 function normalizeBoneName(n) {
-  return n.replace(/^mixamorig:?/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  n = String(n).replace(/.*?mixamorig\d*:?\s*/i, '');
+  return n.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
 
-function remapClip(clip, model) {
+function remapClip(clip, model, label = '') {
   if (!clip || !model) return clip;
   const exact = new Map();
   const norm  = new Map();
@@ -114,6 +124,8 @@ function remapClip(clip, model) {
     const n = normalizeBoneName(o.name);
     if (!norm.has(n)) norm.set(n, o.name);
   });
+  const total = clip.tracks.length;
+  const sample = clip.tracks.slice(0, 4).map((t) => t.name);
   const kept = [];
   for (const track of clip.tracks) {
     const dot = track.name.lastIndexOf('.');
@@ -126,6 +138,9 @@ function remapClip(clip, model) {
     }
   }
   clip.tracks = kept;
+  if (!kept.length && total) {
+    console.warn(`[Guardian] ${label}: remap kept 0/${total} — sample track names:`, sample);
+  }
   return clip;
 }
 
@@ -155,7 +170,7 @@ function getGuardianAssets() {
           Object.entries(kit.files).map(async ([key, file]) => {
             const fbx = await loadFbx(loader, kit.base + file);
             if (fbx?.animations?.[0]) {
-              kitClips[key] = stripRootMotion(fbx.animations[0]);
+              kitClips[key] = stripRootMotion(fbx.animations[0], true);
             }
           })
         );
@@ -165,6 +180,8 @@ function getGuardianAssets() {
 
     return { baseFbx, clips, attackKits };
   })();
+  // Debug hook — raw kit track names for retarget diagnosis.
+  _guardianAssetsPromise.then((a) => { window.__guardianKits = a; });
   return _guardianAssetsPromise;
 }
 
@@ -306,13 +323,21 @@ export class Guardian extends Enemy {
 
     // Kind-specific combat kit — remapped onto THIS clone so the
     // Architect/Enforcer-authored clips bind to the grunt skeleton.
+    // A clip that binds zero tracks is SKIPPED, leaving the shared
+    // grunt fallback strikes active instead of a bind-pose T-pose.
     this._attackNames = [];
     const kit = assets.attackKits[this.kind] || {};
     for (const [key, clip] of Object.entries(kit)) {
       if (!clip) continue;
-      this.actions[key] = this.mixer.clipAction(remapClip(clip, fbx));
+      const mapped = remapClip(clip, fbx, `${this.kind}/${key}`);
+      if (!mapped.tracks.length) {
+        console.warn(`[Guardian] ${this.kind}/${key}: 0 tracks bound — keeping fallback`);
+        continue;
+      }
+      this.actions[key] = this.mixer.clipAction(mapped);
       this._attackNames.push(key);
     }
+    if (!this._attackNames.length) this._attackNames = ['attack1', 'attack2'];
 
     if (this.state === STATE.IDLE) this._playAction('idle');
     this._attachWeapon();

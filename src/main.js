@@ -295,6 +295,10 @@ const dash = {
 // Owns its phase machine, visuals and buffs; main.js feeds it dt,
 // scales the world by trueForm.timeScale and multiplies movement,
 // damage and cooldowns by its getters while she is merged.
+// Unlock: the first time the guardians wake and fight, the True
+// Form is Sorini's for the rest of the level — through the
+// Architect fight to the endgame (latched; resets on level exit).
+let axiomUnlocked = false;
 const trueForm = new AxiomTrueForm({
   scene,
   player,
@@ -306,14 +310,18 @@ const trueForm = new AxiomTrueForm({
   getChestArtifact: () => chestArtifact,
   isFightActive: () => {
     const l = window.__level;
-    if (!l || !l.architect ||
-        typeof l.architect.canBeHit !== 'function' || !l.architect.canBeHit()) {
+    if (!l || !Array.isArray(l.guardians)) {
+      axiomUnlocked = false;   // left Level 3 — lock it again
       return false;
     }
-    // Axiom only fully merges after the guardians have fallen —
-    // the form is reserved for the Architect fight proper.
-    return l.guardiansDefeated === true ||
-      (Array.isArray(l.guardians) && l.guardians.length === 0);
+    if (l.architect && typeof l.architect.canBeHit === 'function' &&
+        l.architect.canBeHit()) {
+      return true;
+    }
+    if (l.guardians.some((g) => g && !g._disposed && !g.dead && g.alerted)) {
+      axiomUnlocked = true;
+    }
+    return axiomUnlocked;
   },
 });
 window.__trueForm = trueForm;
