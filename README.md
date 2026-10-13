@@ -24,7 +24,7 @@ Her journey home crosses three grounds, and every one of them belongs to him.
 |-----|-------|------------|
 | I   | **The Grove Village** | Sorini wakes in the village the Axiom led her to. Waves of grunts follow, ending with the district boss **THE WARDEN**. |
 | II  | **Neon Street** | The city streets turn hostile — mutant packs, alarms, and **THE ENFORCER**, a brawler who fights harder as his health breaks. |
-| III | **The Architect's Monument** | The throne hall. Two **Guardians** (blade and fist) bar the way — and when they fall, the Architect rises from his throne *without touching it*, draws his greatsword from thin air, and meets you in a three-phase duel. |
+| III | **The Architect's Monument** | The throne hall. Two **Guardians** bar the way — the red blade duels with the Architect's own greatsword forms, the blue fist brawls with the Enforcer's strikes. When the guardians wake, Sorini can merge with the Axiom (**Q**) — and when they fall, the Architect rises from his throne *without touching it*, draws his greatsword from thin air, and meets you in a three-phase duel. |
 
 Win the final duel and the game does not end — it **asks**. What do you do
 with the god who made your parasite?
@@ -44,6 +44,7 @@ with the god who made your parasite?
 | `Shift` | Sprint |
 | `Space` | Jump |
 | `Shift` + `Space` | **Axiom Dash** — burst of the Axiom's power, on a cooldown (unlocks on Level 2) |
+| `Q` | **Axiom's True Form** — merge with the Axiom: 8 seconds of doubled speed, tripled damage, invincibility and faster strikes, on a 25s cooldown (unlocks when the Level 3 guardians wake, stays until the end) |
 | `F` | Punch |
 | `G` | Kick (heavier) |
 | `H` | Hook (heavier) |
@@ -70,6 +71,11 @@ desperate.
   environment maps give the monument plaza, the throne hall floor and the
   wet neon street real reflections; zero extra asset files
 - **Mixamo** — animation clips, retargeted onto our character rigs at load time
+- **Axiom's True Form (Level 3)** — a full transformation sequence built in
+  code: freeze-frame + flash activation, then 8s of time-dilated, invulnerable,
+  triple-damage combat with a nested-octahedron orb bloom, backface rim-light
+  silhouette, particle aura, ground shockwave ring, afterimage trail and a
+  cyan screen tint, before a 1s power-down into a 25s cooldown
 - **git-lfs** — all binary assets (FBX models, audio) are LFS-tracked
 
 ## Getting Started
@@ -119,6 +125,8 @@ src/
 
 - **Team RECLAIMED** — design, code, levels, voice recordings
 - Character animation clips and prop rigs via [Mixamo](https://www.mixamo.com)
+- 3D environments & props: *Space Ship Hallway*, *Sky Cruiser RS* and
+  *Moon - Petavius Crater* (Sketchfab — Level 3); *Light* (Kenney, CC0 — Level 2)
 - **Sorini** built on the Kachujin rig; **the Architect** on the Dreyar rig —
   both re-rigged, re-textured and animated in-house
 

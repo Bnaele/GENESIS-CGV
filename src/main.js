@@ -1155,6 +1155,12 @@ function showCreditsOverlay() {
       <p>● Dreyar (Architect) — Mixamo</p>
       <p>● Enforcer (Jones) — Mixamo</p>
 
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">ENVIRONMENTS & PROPS</h2>
+      <p>● Space Ship Hallway (Sketchfab) — Level 3</p>
+      <p>● Sky Cruiser RS (Sketchfab) — Level 3</p>
+      <p>● Moon - Petavius Crater (Sketchfab) — Level 3</p>
+      <p>● Light (Kenney, CC0) — Level 2</p>
+
       <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">TEAM MEMBERS</h2>
       <p>● Banele — UI, Audio, Deployment, Voice Direction</p>
       <p>● Busisiwe — Shaders</p>
