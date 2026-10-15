@@ -314,6 +314,12 @@ const trueForm = new AxiomTrueForm({
       axiomUnlocked = false;   // left Level 3 — lock it again
       return false;
     }
+    // Axiom offered the merge at the Genesis ship — from that moment
+    // the True Form is Sorini's to call anywhere in Level 3.
+    if (l.axiomFormGranted) {
+      axiomUnlocked = true;
+      return true;
+    }
     if (l.architect && typeof l.architect.canBeHit === 'function' &&
         l.architect.canBeHit()) {
       return true;
@@ -339,7 +345,7 @@ addEventListener('keydown', e => {
         // keeps playing over whatever comes next.
         if (window.__audioManager) {
           for (const k of Object.keys(window.__audioManager.sounds)) {
-            if (/^l1_intro$|^l1_axiom_|^l1_ship_|^l2_enforcer_|^l3_architect_|^l3_ending_/.test(k)) {
+            if (/^l1_intro$|^l1_axiom_|^l1_ship_|^l2_enforcer_|^l3_axiom_|^l3_architect_|^l3_ending_/.test(k)) {
               window.__audioManager.sounds[k].stop();
             }
           }
@@ -361,6 +367,7 @@ addEventListener('keydown', e => {
     if (!gameStarted.value || !level) return;
     if (cinematicCamera.active) return;
     if (document.getElementById('endOverlay')) return;
+    if (tipPause) return;   // the True Form tip is modal — no pause menu on top
     if (pauseMenu.visible) {
       pauseMenu.resume();   // Esc again un-pauses
     } else {
@@ -369,7 +376,7 @@ addEventListener('keydown', e => {
     return;
   }
 
-  if (pauseMenu.visible) return;   // gameplay input frozen while paused
+  if (pauseMenu.visible || tipPause) return;   // gameplay input frozen while paused
 
   keys[e.code] = true;
   // Arrows drive the same movement keys as WASD
@@ -615,7 +622,7 @@ function _scheduleLockRetry() {
     _lockRetryTimer = null;
     if (document.pointerLockElement === renderer.domElement) return;
     if (_lockFailCount >= 3) return;             // browser keeps refusing — stop
-    if (pauseMenu.visible) return;               // re-paused — leave the cursor free
+    if (pauseMenu.visible || tipPause) return;   // re-paused / tip — leave the cursor free
     if (!gameStarted.value || !level) return;    // back at the main menu
     if (window.__dialogue && window.__dialogue.active) return;
     if (cinematicCamera.active) return;
@@ -649,7 +656,7 @@ document.addEventListener('pointerlockerror', () => {
 let mouseSensitivity = 0.0022;   // radians per pixel — tunable in the pause menu
 
 addEventListener('mousemove', e => {
-  if (!locked) return;
+  if (!locked || tipPause) return;   // world frozen under the tip — don't spin the camera
   player.cameraYaw -= e.movementX * mouseSensitivity;
   player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch - e.movementY * mouseSensitivity));
 });
@@ -914,6 +921,79 @@ function stepPlayer(dt) {
   }
 }
 
+// ── True Form tip — modal "what you have gained" card ──
+// Shown by Level 3 right after the merge dialogue. Freezes the whole
+// world (same early-return path as the pause menu) until the player
+// presses SPACE. Shown once per activation; safe to call twice.
+let tipPause = false;
+function showTrueFormTip() {
+  if (tipPause || document.getElementById('true-form-tip')) return;
+  tipPause = true;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'true-form-tip';
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:260',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'background:rgba(1,2,8,0.86)', 'backdrop-filter:blur(3px)',
+  ].join(';');
+
+  const card = document.createElement('div');
+  card.style.cssText = [
+    'max-width:640px', 'margin:24px', 'padding:36px 44px',
+    'background:rgba(4,10,22,0.94)',
+    'border:1px solid rgba(0,217,242,0.55)', 'border-radius:14px',
+    'box-shadow:0 0 44px rgba(0,217,242,0.22), inset 0 0 26px rgba(0,217,242,0.06)',
+    'color:#d9f6ff', 'text-align:center',
+  ].join(';');
+  card.innerHTML = `
+    <div style="font-size:12px;letter-spacing:4px;color:#7fe8ff;opacity:.85;">THE ARCHITECT'S MONUMENT</div>
+    <h2 style="margin:14px 0 6px;font-size:26px;letter-spacing:2px;color:#eaffff;text-shadow:0 0 18px rgba(0,217,242,.65);">YOU HAVE BECOME ONE WITH AXIOM</h2>
+    <div style="width:120px;height:1px;margin:10px auto 18px;background:linear-gradient(90deg,transparent,rgba(0,217,242,.8),transparent);"></div>
+    <p style="margin:0 0 14px;line-height:1.65;font-size:15px;color:#cfeefb;">
+      Sorini has merged with Axiom and assumed his <b style="color:#9ff2ff;">True Form</b>.
+      Press <b style="color:#9ff2ff;">Q</b> to unleash it: for <b>8 seconds</b> you move twice
+      as fast, strike three times as hard, swing far more rapidly, and cannot be harmed by
+      any blow. Even your <b>Axiom Dash</b> is transformed, recovering almost instantly and
+      carrying you much farther.
+    </p>
+    <p style="margin:0 0 22px;line-height:1.65;font-size:15px;color:#cfeefb;">
+      When the form fades, it must recharge for <b>25 seconds</b> before you can call upon
+      it again. The Guardians and the Architect are powerful foes — but you are no longer
+      facing them alone. Choose your moment wisely.
+    </p>
+    <div id="true-form-tip-continue" style="font-size:13px;letter-spacing:3px;color:#7fe8ff;opacity:.9;">— PRESS SPACE TO CONTINUE —</div>
+  `;
+  overlay.appendChild(card);
+
+  // Pulsing prompt — kept on the overlay so it dies with it
+  const style = document.createElement('style');
+  style.textContent = '@keyframes tipPulse{0%,100%{opacity:.5}50%{opacity:1}}';
+  overlay.appendChild(style);
+  const prompt = card.querySelector('#true-form-tip-continue');
+  prompt.style.animation = 'tipPulse 1.6s ease-in-out infinite';
+
+  document.body.appendChild(overlay);
+
+  const dismiss = () => {
+    if (!tipPause) return;
+    tipPause = false;
+    overlay.remove();
+    style.remove();
+    document.removeEventListener('keydown', onKey, true);
+    overlay.removeEventListener('click', dismiss);
+  };
+  const onKey = (e) => {
+    if (e.code !== 'Space') return;
+    e.preventDefault();
+    e.stopPropagation();   // never leak into gameplay keys — no jump, no dash
+    dismiss();
+  };
+  document.addEventListener('keydown', onKey, true);   // capture — beats every other handler
+  overlay.addEventListener('click', dismiss);
+}
+window.__showTrueFormTip = showTrueFormTip;
+
 // ---------- loop ----------
 const timer = new THREE.Timer();
 let _rafId = 0;
@@ -932,8 +1012,9 @@ function tick() {
   if (!level) return;
 
   // Freeze the whole world while the pause menu is open — the last
-  // presented frame stays on screen behind the overlay.
-  if (pauseMenu.visible) return;
+  // presented frame stays on screen behind the overlay. The True Form
+  // tip freezes through the same path.
+  if (pauseMenu.visible || tipPause) return;
 
   playerHealth.update(dt);
 
@@ -1185,8 +1266,10 @@ function showCreditsOverlay() {
   });
 }
 
-// Controls overlay — how to play
-function showControlsOverlay() {
+// Controls overlay — how to play.
+// fromMenu: opened from the main menu rather than the pause menu —
+// closing then restores the main-menu screen.
+function showControlsOverlay(fromMenu = false) {
   const controlsDiv = document.createElement('div');
   controlsDiv.id = 'controls-overlay';
   controlsDiv.style.cssText = `
@@ -1206,7 +1289,7 @@ function showControlsOverlay() {
   `;
     controlsDiv.innerHTML = `
     <h1 style="color: #00ffff; font-size: 36px; margin-bottom: 30px;">CONTROLS</h1>
-    <div style="text-align: left; font-size: 16px; line-height: 2; color: #aaa; max-width: 600px;">
+    <div style="text-align: left; font-size: 16px; line-height: 2; color: #aaa; max-width: 600px; max-height: 78vh; overflow-y: auto; padding-right: 12px;">
       <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 10px;">MOVEMENT</h2>
       <p>● W / ↑ — Walk forward (hold SHIFT to sprint)</p>
       <p>● S / ↓ — Turn around and walk the other way</p>
@@ -1221,7 +1304,7 @@ function showControlsOverlay() {
       <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">MOVES</h2>
       <p>● SPACE — Jump</p>
       <p>● SHIFT + SPACE — Axiom dash (unlocks on Level 2)</p>
-      <p>● Q — Axiom's True Form — merge with the Axiom for 8s of boosted power (unlocks in Level 3, when the guardians wake)</p>
+      <p>● Q — Axiom's True Form — merge with the Axiom for 8s of boosted power (unlocks in Level 3, when Axiom offers the merge at the ship)</p>
 
       <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">GENERAL</h2>
       <p>● SPACE / ENTER — Skip a dialogue line</p>
@@ -1242,6 +1325,13 @@ function showControlsOverlay() {
   document.body.appendChild(controlsDiv);
   document.getElementById('controls-back').addEventListener('click', () => {
     controlsDiv.remove();
+    // Opened from the main menu → guarantee the menu is the screen
+    // showing when we return. (The overlay used to be the only thing
+    // keeping the menu visible on some machines; this makes BACK
+    // self-healing.)
+    if (fromMenu && !gameStarted.value && uiManager) {
+      uiManager.showScreen('main-menu');
+    }
   });
 }
 
@@ -1261,7 +1351,7 @@ const pauseMenu = new PauseMenu({
     switchLevel(current);
   },
   onControls: () => {
-    showControlsOverlay();
+    showControlsOverlay(false);   // pause menu context — just close on BACK
   },
   onQuitToMenu: () => restartToMenu(),
 });
@@ -1374,7 +1464,7 @@ const mainMenuElement = createMainMenu(
   },
   // CONTROLS
   () => {
-    showControlsOverlay();
+    showControlsOverlay(true);   // main-menu context — BACK re-shows the menu
   },
   // CREDITS
   () => {
