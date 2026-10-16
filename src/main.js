@@ -18,6 +18,7 @@ import { createMainMenu } from './ui/MainMenu.js';
 import { MenuScene } from './ui/MenuScene.js';
 import { CinematicCamera } from './ui/CinematicCamera.js';
 import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
+import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 
@@ -398,13 +399,6 @@ addEventListener('keydown', e => {
     trueForm.tryActivate();
   }
   if (e.code === 'KeyR') switchLevel(current);
-  if (e.code === 'Digit1') switchLevel(1);
-  if (e.code === 'Digit2') switchLevel(2);
-  if (e.code === 'Digit3') switchLevel(3);
-  if (e.code === 'KeyP' && level && level.setPhase) {
-    phase = phase % 3 + 1;
-    level.setPhase(phase, timer.getElapsed());
-  }
 
     if (e.code === 'Space' && player.grounded && !attackLock && !keys._spaceConsumed
       && !keys.ShiftLeft && !keys.ShiftRight) {
@@ -663,7 +657,7 @@ addEventListener('mousemove', e => {
 
 // ---------- levels ----------
 const LEVELS = { 1: StreetLevel, 2: AlienLevel, 3: ArchitectLevel };
-let level = null, current = 1, phase = 1;
+let level = null, current = 1;
 
 function disposeCurrentLevel() {
   if (level) {
@@ -704,7 +698,7 @@ function disposeCurrentLevel() {
 function switchLevel(n) {
   disposeCurrentLevel();
 
-  current = n; phase = 1;
+  current = n;
   _lastDeathPos = null;
   trueForm.reset();   // never carry the merge across a level switch
 
@@ -1056,6 +1050,12 @@ function tick() {
     hasWaves     // levels 2 & 3 have no waves — hide the counter
   );
 
+  // ── Per-level objectives tracker ──
+  if (typeof level.getObjectives === 'function') {
+    try { updateObjectives(level.getObjectives()); }
+    catch (e) { console.warn('objectives update failed:', e); }
+  }
+
   // ── Cinematic camera takes over during dialogue ──
   // applyTo() drives both position and orientation, so nothing after
   // this block may touch the camera while a sequence is playing — an
@@ -1185,6 +1185,8 @@ const uiManager = new UIManager();
 
 const hudElement = createHUD();
 uiManager.registerScreen('hud', hudElement);
+
+createObjectivesPanel();
 
 const loadingScreenElement = createLoadingScreen();
 uiManager.registerScreen('loading', loadingScreenElement);
@@ -1364,7 +1366,6 @@ function restartToMenu() {
   disposeCurrentLevel();
   level = null;
   current = 1;
-  phase = 1;
   _lastDeathPos = null;
 
   // Remove any ending overlay left over from the Level 3 endings
@@ -1388,6 +1389,7 @@ function restartToMenu() {
 
   // Back to the main menu
   uiManager.hideHUD();
+  updateObjectives(null);
   uiManager.showScreen('main-menu');
   menuCanvas.style.display = '';
   if (menuScene) menuScene.start();
