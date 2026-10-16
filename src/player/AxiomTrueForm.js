@@ -127,6 +127,39 @@ export class AxiomTrueForm {
     this._phase = 'ready';
     this._phaseT = 0;
     this._cooldownLeft = 0;
+    this._infinite = false;
+    this._hideIndicator = false;
+  }
+
+  // Trailer capture only: snap straight into the merged form and hold it
+  // indefinitely — the standoff shot needs her "one with Axiom" with no
+  // 8-second timer and no HUD countdown.
+  forceShow() {
+    const root = this.getSoriniRoot();
+    if (!root) return false;
+    if (!this._built && !this._buildVisuals(root)) return false;
+    this._infinite = true;
+    this._hideIndicator = true;
+    if (this._indicatorEl) this._indicatorEl.style.display = 'none';
+    if (this._phase !== 'active') {
+      this._phase = 'active';
+      this._phaseT = 0;
+      this._explodeT = 0;
+      if (this.playerHealth) this.playerHealth.invincible = true;
+      this._applyTint(true);
+      this._setOrbForm(true);
+      if (this._aura) {
+        this._aura.visible = true;
+        this._aura.material.opacity = 0.10;
+      }
+      if (this._ring) this._ring.visible = true;
+      if (this._hair) this._hair.visible = true;
+      if (this._overlayEl) {
+        this._overlayEl.style.transition = 'opacity 0.25s ease';
+        this._overlayEl.style.opacity = '0.8';
+      }
+    }
+    return true;
   }
 
   // Clean reset for level switches / quit-to-menu.
@@ -159,7 +192,7 @@ export class AxiomTrueForm {
       if (this._phaseT >= CFG.ACTIVATION) this._enterActive();
     } else if (this._phase === 'active') {
       this._phaseT += dt;
-      if (this._phaseT >= CFG.DURATION) this._enterDeactivating();
+      if (this._phaseT >= CFG.DURATION && !this._infinite) this._enterDeactivating();
     } else if (this._phase === 'deactivating') {
       this._phaseT += dt;
       if (this._phaseT >= CFG.DEACTIVATION) this._enterCooldown();
@@ -714,6 +747,10 @@ export class AxiomTrueForm {
   _updateHUDText() {
     const el = this._indicatorEl;
     if (!el) return;
+    if (this._hideIndicator) {
+      if (el.style.display !== 'none') el.style.display = 'none';
+      return;
+    }
     const fight = this.isFightActive();
     const inSequence =
       this._phase === 'activating' || this._phase === 'active' ||

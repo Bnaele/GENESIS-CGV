@@ -2134,6 +2134,153 @@ export class ArchitectLevel {
     window.__trailerStandoff = true;
   }
 
+  // Trailer v2 (?standoff=1): the full Level 3 showcase, hands-free.
+  // Surroundings tour -> Blade -> Fist -> (black) -> the rise, the
+  // Architect's dialogue, then the standoff with Sorini ALREADY in
+  // her True Form — both of them held in a wide two-shot. The caller
+  // (main.js) owns the overlay and the isAlive() skip check.
+  async trailerRun(overlay, isAlive) {
+    const cam = window.__cinematicCamera;
+    if (!cam || typeof cam.play !== 'function') return;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const fy = (this._F && this._F.floor) || 0;
+    const surf = (x, z) =>
+      (typeof this.getSurfaceHeight === 'function' ? this.getSurfaceHeight(x, z) : 0);
+    const p = window.__player;
+
+    // ── beat 0 — title card, then open the book ──
+    const title = overlay.titleCard('LEVEL 3', 'THE MONUMENT', 2600);
+    await sleep(1000);
+    overlay.setPagesOpen(true);
+    await title;
+    if (!isAlive()) return;
+
+    // Park her far from the hall so the Guardians stay dormant and
+    // neither the merge dialogue nor the rise trigger can fire.
+    if (p) {
+      p.pos.set(0, surf(0, 45), 45);
+      p.vel.set(0, 0, 0);
+      p.grounded = true;
+    }
+
+    // ── beat 1 — the surroundings: the ship vista, then the hall ──
+    cam.play([
+      {   // Genesis ship parked, monument far ahead
+        pos: [26.5, surf(26, 37) + 3.4, 37],
+        look: [20, surf(20, 30) + 1.4, 28],
+        duration: 8000, transition: 1600,
+        drift: [1.2, -0.2, -1.6], ease: 'in-out',
+      },
+      {   // down the hall — Guardians flanking, the throne beyond
+        pos: [0, fy + 2.6, -80],
+        look: [0, fy + 1.8, -100],
+        duration: 8000, transition: 1400,
+        drift: [0.8, -0.15, -1.5], ease: 'in-out',
+      },
+    ]);
+    await sleep(17000);
+    if (!isAlive()) return;
+
+    // ── beat 2 — THE BLADE ──
+    const blade = this.guardians.find((g) => g && g.kind === 'blade') || this.guardians[0];
+    if (blade && blade.group) {
+      const bp = blade.group.position;
+      cam.play([{
+        pos: [bp.x + 3.5, fy + 1.2, bp.z + 5.5],
+        look: [bp.x, fy + 1.6, bp.z],
+        duration: 6500, transition: 600,
+        drift: [-0.45, 0.05, -0.6], ease: 'in-out',
+      }]);
+      await sleep(7300);
+      if (!isAlive()) return;
+    }
+
+    // ── beat 3 — THE FIST ──
+    const fist = this.guardians.find((g) => g && g.kind === 'fist') || this.guardians[1];
+    if (fist && fist.group) {
+      const fp = fist.group.position;
+      cam.play([{
+        pos: [fp.x - 3.5, fy + 1.2, fp.z + 5.5],
+        look: [fp.x, fy + 1.6, fp.z],
+        duration: 6500, transition: 600,
+        drift: [0.45, 0.05, -0.6], ease: 'in-out',
+      }]);
+      await sleep(7300);
+      if (!isAlive()) return;
+    }
+
+    // ── beat 4 — black; clear the Guardians; she walks into destiny ──
+    overlay.setPagesOpen(false);
+    await sleep(750);
+    if (!isAlive()) return;
+
+    this.trailerSkipToStandoff();            // silent clear + standoff arming
+    if (p) {
+      p.pos.set(0, surf(0, -104), -104);     // 9 m from the throne — inside the rise trigger
+      p.vel.set(0, 0, 0);
+      p.yaw = Math.PI;
+      p.grounded = true;
+    }
+
+    overlay.flash(650);
+    overlay.setPagesOpen(true);
+
+    // The rise fires on the next update; the Architect's dialogue
+    // plays out with the game's own VO and captions.
+    let waited = 0;
+    while (this.fightState !== 'standoff' && isAlive() && waited < 120000) {
+      await sleep(500);
+      waited += 500;
+    }
+    if (!isAlive()) return;
+
+    // ── beat 5 — she answers: TRUE FORM, then the wide two-shot ──
+    if (window.__trueForm && typeof window.__trueForm.forceShow === 'function') {
+      window.__trueForm.forceShow();
+    }
+    overlay.flash(480);
+
+    const ap = this.architect ? this.architect.getPosition() : { x: 0, y: fy, z: -113 };
+    const pp = (p && p.pos) || { x: 0, y: fy, z: -104 };
+    const mx = (ap.x + pp.x) / 2, mz = (ap.z + pp.z) / 2;
+    const dx = ap.x - pp.x, dz = ap.z - pp.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const ox = -dz / len, oz = dx / len;      // perpendicular off the line
+
+    // Side-on, pulled right back — Sorini's aura AND the Architect
+    // both fully in frame. Long hold; cut the take when happy.
+    cam.play([
+      {
+        pos: [mx + ox * 5.6, fy + 2.1, mz + oz * 5.6],
+        look: [mx, fy + 1.6, mz],
+        duration: 20000, transition: 2000,
+        drift: [-ox * 1.1, -0.12, -oz * 1.1],
+        ease: 'in-out',
+      },
+      {
+        pos: [ap.x + ox * 4.2, fy + 2.2, ap.z + oz * 4.2],
+        look: [ap.x, fy + 1.7, ap.z],
+        duration: 12000, transition: 2600,
+        drift: [-ox * 0.4, 0.05, -oz * 0.4],
+        ease: 'in-out',
+      },
+    ]);
+
+    await sleep(2400);
+    if (!isAlive()) return;
+    await overlay.titleCard('GENESIS', 'ONE WILL RISE', 3600);
+    if (!isAlive()) return;
+
+    // Hold the two-shot open-ended — the take ends when the capture does.
+    cam.play([{
+      pos: [mx + ox * 6.2, fy + 2.2, mz + oz * 6.2],
+      look: [mx, fy + 1.6, mz],
+      duration: 120000, transition: 2400,
+      drift: [-ox * 0.6, -0.06, -oz * 0.6],
+      ease: 'in-out',
+    }]);
+  }
+
   _onArchitectDefeated() {
     this.fightState = 'victory';
     this.bossHealthBar.hide();
