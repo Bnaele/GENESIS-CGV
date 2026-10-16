@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { recordKO } from '../utils/stats.js';
 
 // Bone-name remap (FBX clips vs GLB skeleton)
 function normalizeBoneName(name) {
@@ -476,6 +477,7 @@ export class Enforcer {
     }
 
     if (this.health <= 0) {
+      recordKO();
       this._die();
     }
   }

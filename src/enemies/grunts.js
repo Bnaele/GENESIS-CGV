@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { recordKO } from '../utils/stats.js';
 import { applyDissolveToModel, sharedDissolveNoise } from '../shaders/shaders.js';
 
 // ── Root motion stripper ──
@@ -377,6 +378,8 @@ export class Grunt {
     this.hitFlashTimer = 0.12;
     this._flashColor();
     if (this.health <= 0) {
+      // killAll()'s cleanup sweep must not count as player KOs
+      if (!this._silentDeath) recordKO();
       this._die();
       return;
     }
@@ -489,7 +492,7 @@ export class GruntManager {
 
   killAll() {
     for (const g of this.grunts) {
-      if (g.alive) g.takeDamage(999);
+      if (g.alive) { g._silentDeath = true; g.takeDamage(999); }
     }
   }
 

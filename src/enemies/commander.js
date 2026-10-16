@@ -3,6 +3,7 @@
 // Giant grunt (grunt.fbx scaled 2×) with dark red + gold accents
 
 import * as THREE from 'three';
+import { recordKO } from '../utils/stats.js';
 import { loadGruntAssets } from './grunts.js';
 
 export class Commander {
@@ -319,6 +320,7 @@ export class Commander {
     }
 
     if (this.health <= 0) {
+      recordKO();
       this._die();
     }
   }

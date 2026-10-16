@@ -20,6 +20,8 @@ import { CinematicCamera } from './ui/CinematicCamera.js';
 import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
 import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
 import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
+import { showSummaryCard } from './ui/SummaryCard.js';
+import { resetStats, gameStats } from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 
@@ -691,6 +693,9 @@ addEventListener('mousemove', e => {
 // ---------- levels ----------
 const LEVELS = { 1: StreetLevel, 2: AlienLevel, 3: ArchitectLevel };
 let level = null, current = 1;
+// Level-complete summary card — timer + one-shot trigger, reset per level
+let _levelStartTime = performance.now();
+let _summaryShown = false;
 
 function disposeCurrentLevel() {
   if (level) {
@@ -733,6 +738,9 @@ function switchLevel(n) {
 
   current = n;
   _lastDeathPos = null;
+  _levelStartTime = performance.now();
+  _summaryShown = false;
+  resetStats();
   trueForm.reset();   // never carry the merge across a level switch
 
   try {
@@ -1089,7 +1097,22 @@ function tick() {
 
   // ── Per-level objectives tracker ──
   if (typeof level.getObjectives === 'function') {
-    try { updateObjectives(level.getObjectives()); }
+    try {
+      const objs = level.getObjectives();
+      updateObjectives(objs);
+      // Boss objective just completed — pop the level summary once.
+      // (Level 3 has no flag: its ending cinematic replaces the card.)
+      if (!_summaryShown && objs.some((o) => o.boss && o.done)) {
+        _summaryShown = true;
+        showSummaryCard({
+          title: `LEVEL ${current} CLEAR`,
+          timeSec: (performance.now() - _levelStartTime) / 1000,
+          kos: gameStats.kos,
+          health: playerHealth.hp,
+          maxHealth: playerHealth.maxHp,
+        });
+      }
+    }
     catch (e) { console.warn('objectives update failed:', e); }
   }
 

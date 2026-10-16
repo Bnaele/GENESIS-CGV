@@ -463,7 +463,7 @@ export class StreetLevel {
         done: wavesDone,
         active: !wavesDone,
       },
-      { text: 'Defeat THE WARDEN', done: bossDone, active: wavesDone && !bossDone },
+      { text: 'Defeat THE WARDEN', done: bossDone, active: wavesDone && !bossDone, boss: true },
     ];
   }
 

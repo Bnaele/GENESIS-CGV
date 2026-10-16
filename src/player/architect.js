@@ -19,6 +19,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { recordKO } from '../utils/stats.js';
 
 // ── Asset paths ────────────────────────────────────────────
 const MODEL_BASE   = './assets/models/enemy/';
@@ -613,6 +614,7 @@ export class Architect {
     this.health -= amount;
     this._flashColor();
     if (this.health <= 0) {
+      recordKO();
       this._die();
       return;
     }

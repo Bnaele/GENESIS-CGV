@@ -847,7 +847,7 @@ this._buildHazardTiles();
         const entered = !!this._portalEntered;
         return [
             { text: 'Answer the Enforcer’s challenge', done: fightStarted, active: !fightStarted },
-            { text: 'Defeat THE ENFORCER', done: bossDead, active: fightStarted && !bossDead },
+            { text: 'Defeat THE ENFORCER', done: bossDead, active: fightStarted && !bossDead, boss: true },
             { text: 'Enter the portal at the far end', done: entered, active: bossDead && !entered },
         ];
     }
