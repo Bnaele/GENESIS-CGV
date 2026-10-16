@@ -101,8 +101,8 @@ export class PlayerHealth {
         this.hp = Math.max(0, this.hp - amount);
         this._updateBar();
 
-        // Flash the screen red (quick visual feedback)
-        this._flashScreen();
+        // Directional red vignette — main.js owns the visuals
+        if (this.callbacks.onHurt) this.callbacks.onHurt(amount);
 
         if (this.hp <= 0) {
             this.dead = true;
@@ -150,22 +150,6 @@ export class PlayerHealth {
 
     get isInvulnerable() {
         return this._hurtCooldown > 0;
-    }
-
-    _flashScreen() {
-        const flash = document.createElement('div');
-        Object.assign(flash.style, {
-            position: 'fixed',
-            top: '0', left: '0',
-            width: '100%', height: '100%',
-            background: 'rgba(255, 0, 0, 0.25)',
-            pointerEvents: 'none',
-            zIndex: '9999',
-            transition: 'opacity 0.4s ease',
-        });
-        document.body.appendChild(flash);
-        requestAnimationFrame(() => { flash.style.opacity = '0'; });
-        setTimeout(() => flash.remove(), 500);
     }
 
     dispose() {

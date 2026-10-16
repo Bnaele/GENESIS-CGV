@@ -19,6 +19,7 @@ import { MenuScene } from './ui/MenuScene.js';
 import { CinematicCamera } from './ui/CinematicCamera.js';
 import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
 import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
+import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 
@@ -106,9 +107,40 @@ const playerHealth = new PlayerHealth({
     }
     player.vel.set(0, 0, 0);
     _lastDeathPos = null;
+  },
+  onHurt: () => {
+    // Red vignette from the attacker's screen direction — cosmetic only
+    try { flashDamageFrom(_nearestThreatPos(), player.pos, camera); } catch (e) { /* never block damage */ }
   }
 });
 window.__playerHealth = playerHealth;
+
+// Nearest living hostile to Sorini — used to aim the damage flash when a
+// hit lands (callers don't all pass their position through).
+function _nearestThreatPos() {
+  if (!level || !player) return null;
+  const p = player.pos;
+  let best = null, bestD = Infinity;
+  const consider = (pos) => {
+    if (!pos || !pos.isVector3) return;
+    const d = pos.distanceToSquared(p);
+    if (d < bestD) { bestD = d; best = pos; }
+  };
+  if (level.commander && level.commander.alive) consider(level.commander.getPosition());
+  if (level.enforcer && level.enforcer.alive) consider(level.enforcer.getPosition());
+  if (level.architect && (!level.architect.canBeHit || level.architect.canBeHit())) {
+    consider(level.architect.getPosition());
+  }
+  if (Array.isArray(level.guardians)) {
+    for (const g of level.guardians) {
+      if (g && !g._disposed && !g.dead && g.group) consider(g.group.position);
+    }
+  }
+  if (level.grunts && Array.isArray(level.grunts.grunts)) {
+    for (const g of level.grunts.grunts) consider(g.position);
+  }
+  return best ? best.clone() : null;
+}
 
 // ---------- Sorini avatar ----------
 const soriniGroup = new THREE.Group();
@@ -1187,6 +1219,7 @@ const hudElement = createHUD();
 uiManager.registerScreen('hud', hudElement);
 
 createObjectivesPanel();
+createDamageFlash();
 
 const loadingScreenElement = createLoadingScreen();
 uiManager.registerScreen('loading', loadingScreenElement);
