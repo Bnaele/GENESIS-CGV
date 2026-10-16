@@ -840,6 +840,18 @@ this._buildHazardTiles();
 
     }
 
+    // Objectives shown in the HUD tracker.
+    getObjectives() {
+        const fightStarted = !!this._introCommanderSpawned;
+        const bossDead = fightStarted && this.enforcer && !this.enforcer.alive;
+        const entered = !!this._portalEntered;
+        return [
+            { text: 'Answer the Enforcer’s challenge', done: fightStarted, active: !fightStarted },
+            { text: 'Defeat THE ENFORCER', done: bossDead, active: fightStarted && !bossDead },
+            { text: 'Enter the portal at the far end', done: entered, active: bossDead && !entered },
+        ];
+    }
+
     // =========================================================
     // UNLEASH MINIONS — staged grunt spawns from the far portal
     // =========================================================

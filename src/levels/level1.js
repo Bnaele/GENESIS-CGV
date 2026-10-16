@@ -451,6 +451,22 @@ export class StreetLevel {
     }
   }
 
+  // Objectives shown in the HUD tracker. The commander is only called
+  // once every wave is wiped, so _commanderCalled latches objective 1.
+  getObjectives() {
+    const wavesDone = !!this._commanderCalled;
+    const bossDone = !!this.commander && !this.commander.alive;
+    return [
+      {
+        text: 'Drive the invaders from the Grove',
+        note: wavesDone ? '3/3 WAVES' : `WAVE ${Math.min(this.waveIndex, this.waves.length)}/${this.waves.length}`,
+        done: wavesDone,
+        active: !wavesDone,
+      },
+      { text: 'Defeat THE WARDEN', done: bossDone, active: wavesDone && !bossDone },
+    ];
+  }
+
   // ── Commander spawn ──
   _spawnCommander() {
     if (this.commanderSpawned) return;

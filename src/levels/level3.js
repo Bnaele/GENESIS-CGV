@@ -2095,6 +2095,7 @@ export class ArchitectLevel {
     if (!d) return;
     try {
       // The choice prompt — now earned, not granted
+      this._endingChosen = true;
       const choice = await d.ask('What do you say?', [
         "I'm here to end this.",
         'What is GENESIS?',
@@ -2110,6 +2111,24 @@ export class ArchitectLevel {
     } catch (e) {
       console.warn('Dialogue error:', e);
     }
+  }
+
+  // Objectives shown in the HUD tracker.
+  getObjectives() {
+    const guardiansDone = !!this.guardiansDefeated;
+    const architectDone = this.fightState === 'victory';
+    const chosen = !!this._endingChosen;
+    const fallen = this.guardians.filter((g) => g.state === STATE.DEAD || g.dead).length;
+    return [
+      {
+        text: 'Defeat the Monument’s Guardians',
+        note: guardiansDone ? '2/2' : `${fallen}/2`,
+        done: guardiansDone,
+        active: !guardiansDone,
+      },
+      { text: 'Face THE ARCHITECT', done: architectDone, active: guardiansDone && !architectDone },
+      { text: 'Decide the Architect’s fate', done: chosen, active: architectDone && !chosen },
+    ];
   }
 
   // ─────────────────────────────────────────────────────────
