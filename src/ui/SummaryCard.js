@@ -56,3 +56,14 @@ export function showSummaryCard({ title, timeSec, kos, health, maxHealth }) {
     el.style.transform = 'translateX(-50%) translateY(20px)';
   }, 6500);
 }
+
+// Fade the card out — delayMs lets it linger across a level transition
+// so the player can read the summary while the next level loads.
+export function hideSummaryCard(delayMs = 0) {
+  if (!_el) return;
+  clearTimeout(_hideTimer);
+  _hideTimer = setTimeout(() => {
+    _el.style.opacity = '0';
+    _el.style.transform = 'translateX(-50%) translateY(20px)';
+  }, delayMs);
+}

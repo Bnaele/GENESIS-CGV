@@ -202,6 +202,7 @@ export class StreetLevel {
       this._h.bind(this),
       this.pathX.bind(this),
       () => {
+        if (typeof this.onLevelComplete === 'function') this.onLevelComplete();
         setTimeout(() => {
           if (typeof window.__switchLevel === 'function') window.__switchLevel(2);
         }, 1200);
@@ -463,7 +464,7 @@ export class StreetLevel {
         done: wavesDone,
         active: !wavesDone,
       },
-      { text: 'Defeat THE WARDEN', done: bossDone, active: wavesDone && !bossDone, boss: true },
+      { text: 'Defeat THE WARDEN', done: bossDone, active: wavesDone && !bossDone },
     ];
   }
 

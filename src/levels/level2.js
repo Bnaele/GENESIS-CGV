@@ -847,7 +847,7 @@ this._buildHazardTiles();
         const entered = !!this._portalEntered;
         return [
             { text: 'Answer the Enforcer’s challenge', done: fightStarted, active: !fightStarted },
-            { text: 'Defeat THE ENFORCER', done: bossDead, active: fightStarted && !bossDead, boss: true },
+            { text: 'Defeat THE ENFORCER', done: bossDead, active: fightStarted && !bossDead },
             { text: 'Enter the portal at the far end', done: entered, active: bossDead && !entered },
         ];
     }
@@ -7183,6 +7183,7 @@ createCityBackground() {
             const pd = Math.hypot(pdx, pdz);
             if (pd < 3.0) {
                 this._portalEntered = true;
+                if (typeof this.onLevelComplete === 'function') this.onLevelComplete();
                 if (typeof window.__switchLevel === 'function') {
                     window.__switchLevel(3);
                 }

@@ -20,7 +20,7 @@ import { CinematicCamera } from './ui/CinematicCamera.js';
 import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
 import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
 import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
-import { showSummaryCard } from './ui/SummaryCard.js';
+import { showSummaryCard, hideSummaryCard } from './ui/SummaryCard.js';
 import { resetStats, gameStats } from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
@@ -735,6 +735,9 @@ function disposeCurrentLevel() {
 
 function switchLevel(n) {
   disposeCurrentLevel();
+  // A summary card may still be up from the portal that triggered this
+  // switch — let it linger through the transition, then clear it.
+  hideSummaryCard(3500);
 
   current = n;
   _lastDeathPos = null;
@@ -780,6 +783,22 @@ function switchLevel(n) {
       playerHealth.takeDamage(dmg);
     };
     level.playerHealth = playerHealth;
+
+    // Levels call this the moment the exit portal is entered — the
+    // summary card pops then, not at boss death (the post-fight
+    // cinematic would outlast it). Level 3 never calls it: its ending
+    // cinematic replaces the card.
+    level.onLevelComplete = () => {
+      if (_summaryShown) return;
+      _summaryShown = true;
+      showSummaryCard({
+        title: `LEVEL ${current} CLEAR`,
+        timeSec: (performance.now() - _levelStartTime) / 1000,
+        kos: gameStats.kos,
+        health: playerHealth.hp,
+        maxHealth: playerHealth.maxHp,
+      });
+    };
   }
 
   // Fresh start — Sorini always begins a level at full health, no matter
@@ -1097,22 +1116,7 @@ function tick() {
 
   // ── Per-level objectives tracker ──
   if (typeof level.getObjectives === 'function') {
-    try {
-      const objs = level.getObjectives();
-      updateObjectives(objs);
-      // Boss objective just completed — pop the level summary once.
-      // (Level 3 has no flag: its ending cinematic replaces the card.)
-      if (!_summaryShown && objs.some((o) => o.boss && o.done)) {
-        _summaryShown = true;
-        showSummaryCard({
-          title: `LEVEL ${current} CLEAR`,
-          timeSec: (performance.now() - _levelStartTime) / 1000,
-          kos: gameStats.kos,
-          health: playerHealth.hp,
-          maxHealth: playerHealth.maxHp,
-        });
-      }
-    }
+    try { updateObjectives(level.getObjectives()); }
     catch (e) { console.warn('objectives update failed:', e); }
   }
 
@@ -1449,6 +1453,7 @@ const pauseMenu = new PauseMenu({
 function restartToMenu() {
   if (document.pointerLockElement) document.exitPointerLock();
   pauseMenu.hide();
+  hideSummaryCard();
 
   disposeCurrentLevel();
   level = null;
