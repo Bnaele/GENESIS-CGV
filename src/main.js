@@ -914,6 +914,7 @@ const _pMax = new THREE.Vector3();
 const _pb = new THREE.Box3(_pMin, _pMax);
 
 function stepPlayer(dt) {
+  if (window.__trailerStandoff) return;   // ?standoff=1 capture — she holds her ground
   const isSprint = keys.ShiftLeft || keys.ShiftRight;
   const sp = (isSprint ? SPRINT : SPEED) * trueForm.speedMult;
 
@@ -1638,6 +1639,35 @@ uiManager.showScreen('main-menu');
 // the menu is up, so the director's hideAllScreens() wins the paint.
 if (new URLSearchParams(location.search).has('trailer')) {
   trailerDirector.start();
+}
+
+// ?standoff=1 — trailer capture: jump straight to the Architect
+// standoff in Level 3. The Guardians are silently cleared and Sorini
+// is placed before the throne; the rise + dialogue play, then the
+// duel is HELD — a face-off, not a fight.
+if (new URLSearchParams(location.search).has('standoff')) {
+  uiManager.hideAllScreens();
+  uiManager.showHUD();
+  if (!gameStarted.value) {
+    gameStarted.value = true;
+    switchLevel(3);
+    tick();
+  } else {
+    switchLevel(3);
+  }
+  requestGamePointerLock();
+  setTimeout(() => {
+    if (level && typeof level.trailerSkipToStandoff === 'function') {
+      level.trailerSkipToStandoff();
+      const ap = level.architect.getPosition();
+      player.pos.set(ap.x, 0, ap.z + 9);   // inside the 14 m rise trigger
+      player.pos.y = level.getSurfaceHeight
+        ? level.getSurfaceHeight(player.pos.x, player.pos.z)
+        : 0;
+      player.vel.set(0, 0, 0);
+      player.yaw = Math.PI;                // face the throne (-Z)
+    }
+  }, 1200);
 }
 
 // ---------- Vite HMR cleanup ----------

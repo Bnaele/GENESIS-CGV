@@ -2052,12 +2052,14 @@ export class ArchitectLevel {
       // Restore gameplay input before the duel — a finished sequence
       // must never leave the dialogue marked active (soft-lock).
       d.hide();
-      this._startArchitectFight();
+      if (window.__trailerStandoff) this._holdStandoff();
+      else this._startArchitectFight();
     } catch (e) {
       console.warn('Dialogue error:', e);
       // Never leave the game soft-locked if dialogue throws
       if (d && typeof d.hide === 'function') d.hide();
-      this._startArchitectFight();
+      if (window.__trailerStandoff) this._holdStandoff();
+      else this._startArchitectFight();
     }
   }
 
@@ -2078,6 +2080,58 @@ export class ArchitectLevel {
     this.bossHealthBar.show();
     this.bossHealthBar.setHealth(this.architect.health, this.architect.MAX_HEALTH);
     this.bossHealthBar.setPhase(1);
+  }
+
+  // Trailer capture only (?standoff=1): the duel is held — the two of
+  // them simply face each other while the camera works the shot.
+  _holdStandoff() {
+    this.fightState = 'standoff';
+    if (window.__audioManager) window.__audioManager.resumeMusic();
+
+    const cam = window.__cinematicCamera;
+    if (!cam || typeof cam.play !== 'function') return;
+
+    const fy = (this._F && this._F.floor) || 0;
+    const ap = this.architect ? this.architect.getPosition() : { x: 0, y: fy, z: -113 };
+    const p = (window.__player && window.__player.pos) || { x: ap.x, y: fy, z: ap.z + 9 };
+
+    // Side-on two-shot off the line between them, then a slow tighten
+    // onto the Architect. ~24 s of hold — cut whenever the take is good.
+    const mx = (ap.x + p.x) / 2, mz = (ap.z + p.z) / 2;
+    const dx = ap.x - p.x, dz = ap.z - p.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const px = -dz / len, pz = dx / len;
+
+    cam.play([
+      {
+        pos: [mx + px * 4.2, fy + 1.9, mz + pz * 4.2],
+        look: [mx, fy + 1.5, mz],
+        duration: 15000, transition: 2400,
+        drift: [-px * 0.8, -0.1, -pz * 0.8],
+        ease: 'in-out',
+      },
+      {
+        pos: [ap.x + px * 2.8, fy + 2.0, ap.z + pz * 2.8],
+        look: [ap.x, fy + 1.7, ap.z],
+        duration: 9000, transition: 2200,
+        drift: [-px * 0.3, 0.04, -pz * 0.3],
+        ease: 'in-out',
+      },
+    ]);
+  }
+
+  // ?standoff=1 entry point — silently clear the Guardians and arm the
+  // standoff hold so the approaching-player trigger fires the rise
+  // without a fight ever starting.
+  trailerSkipToStandoff() {
+    for (const g of this.guardians) {
+      if (!g || g._disposed) continue;
+      g.state = STATE.DEAD;   // stops alert/update logic, no death FX
+      g.dead = true;
+      if (g.group) g.group.visible = false;
+    }
+    this.guardiansDefeated = true;
+    window.__trailerStandoff = true;
   }
 
   _onArchitectDefeated() {
