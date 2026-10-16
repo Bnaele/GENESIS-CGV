@@ -803,6 +803,10 @@ function switchLevel(n) {
     try { level.spawn = level.getSpawn(); } catch (e) { console.warn('getSpawn failed:', e); }
   }
 
+  // Levels bake 2048 shadows at build time — re-apply the trimmed
+  // resolution when LOW quality is active so the setting survives switches.
+  if (qualityMode === 'low') _setShadowResolution(1024);
+
   if (n === 2 && typeof level.startIntroSequence === 'function') {
     level.startIntroSequence();
   }
@@ -1372,10 +1376,36 @@ function showControlsOverlay(fromMenu = false) {
 }
 
 // ── Pause menu — options, restart level, quit to menu ──
+// ── Quality toggle (pause menu) — LOW trades fill rate and shadow
+// resolution for FPS on weak GPUs; HIGH is the full setup. ──
+function _setShadowResolution(size) {
+  scene.traverse((o) => {
+    if (o.isLight && o.shadow) {
+      o.shadow.mapSize.set(size, size);
+      if (o.shadow.map) { o.shadow.map.dispose(); o.shadow.map = null; }
+    }
+  });
+}
+function applyQuality(mode) {
+  if (mode === 'low') {
+    renderer.setPixelRatio(1);
+    _setShadowResolution(1024);
+  } else {
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    _setShadowResolution(2048);
+  }
+  try { localStorage.setItem('genesis-quality', mode); } catch (e) { /* private mode */ }
+}
+let qualityMode = 'high';
+try { qualityMode = localStorage.getItem('genesis-quality') === 'low' ? 'low' : 'high'; } catch (e) {}
+applyQuality(qualityMode);
+
 const pauseMenu = new PauseMenu({
   audioManager,
   initialSensitivity: 0.0022,
+  initialQuality: qualityMode,
   onSensitivityChange: (v) => { mouseSensitivity = v; },
+  onQualityChange: (mode) => { qualityMode = mode; applyQuality(mode); },
   onResume: () => {
     pauseMenu.hide();
     // This click is the browser gesture; if Chrome's post-Esc cooldown

@@ -9,7 +9,9 @@ export class PauseMenu {
   constructor({
     audioManager,
     initialSensitivity = 0.0022,
+    initialQuality = 'high',
     onSensitivityChange = () => {},
+    onQualityChange = () => {},
     onResume = () => {},
     onRestartLevel = () => {},
     onControls = () => {},
@@ -19,6 +21,7 @@ export class PauseMenu {
     this.visible = false;
 
     this._onSensitivityChange = onSensitivityChange;
+    this._onQualityChange = onQualityChange;
     this._onResume = onResume;
     this._onRestartLevel = onRestartLevel;
     this._onControls = onControls;
@@ -94,6 +97,7 @@ export class PauseMenu {
       (v) => Math.round((v / 0.0022) * 100) + '%'
     ));
     panel.appendChild(this._makeMuteToggle());
+    panel.appendChild(this._makeQualityToggle(initialQuality));
 
     this.container.appendChild(panel);
     document.body.appendChild(this.container);
@@ -228,6 +232,39 @@ export class PauseMenu {
     btn.addEventListener('click', () => {
       this.audioManager.toggleMute();
       refresh();
+    });
+    refresh();
+    return btn;
+  }
+
+  // LOW quality: pixel ratio 1 + 1024 shadows — for weak GPUs. HIGH
+  // restores the full setup. Cycles on click; main.js applies + persists.
+  _makeQualityToggle(mode) {
+    let current = mode;
+    const btn = document.createElement('button');
+    const refresh = () => {
+      btn.innerText = 'QUALITY: ' + current.toUpperCase();
+      btn.style.borderColor = current === 'low' ? '#ffaa00' : '#555';
+      btn.style.color = current === 'low' ? '#ffaa00' : '#aaa';
+    };
+    Object.assign(btn.style, {
+      display: 'block',
+      width: '240px',
+      margin: '8px auto 0',
+      background: 'transparent',
+      border: '2px solid #555',
+      padding: '8px 30px',
+      fontSize: '0.85rem',
+      letterSpacing: '2px',
+      cursor: 'pointer',
+      borderRadius: '8px',
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
+    });
+    btn.addEventListener('click', () => {
+      current = current === 'low' ? 'high' : 'low';
+      refresh();
+      this._onQualityChange(current);
     });
     refresh();
     return btn;
