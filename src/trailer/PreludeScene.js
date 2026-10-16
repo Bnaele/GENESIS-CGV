@@ -13,8 +13,9 @@
 //              docks in her chest
 //   TAKING   — it takes her: she rises out of the bed, chest
 //              blazing
-//   INVASION — the same night, somewhere else: the war has
-//              already begun
+//   INVASION — the same night, Japan: Mount Fuji under a blood
+//              moon, ships overhead, the war already begun
+//              (no fighting — she is not there yet)
 //
 // Everything reuses the game's real assets — sorini.fbx, the
 // chest reactor from chestArtifact.js and Spaceship.fbx — so
@@ -357,7 +358,7 @@ export class PreludeScene {
     g.visible = false;
     this.scene.add(g);
 
-    // Scorped wasteland ground
+    // Night ground — a coastal Japanese town
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(140, 40),
       new THREE.MeshStandardMaterial({ color: 0x0b0d15, roughness: 1 }));
@@ -365,21 +366,99 @@ export class PreludeScene {
     ground.receiveShadow = true;
     g.add(ground);
 
-    // Village silhouettes — dark huts under the ships
-    const hutMat = new THREE.MeshStandardMaterial({ color: 0x06080d, roughness: 1 });
-    for (let i = 0; i < 10; i++) {
-      const w = 1.6 + Math.random() * 1.4;
-      const hut = new THREE.Mesh(new THREE.BoxGeometry(w, 1.4 + Math.random() * 0.6, w), hutMat);
-      const ang = (i / 10) * Math.PI * 2 + Math.random() * 0.5;
-      const rad = 9 + Math.random() * 16;
-      hut.position.set(Math.sin(ang) * rad, 0.7, 6 + Math.cos(ang) * rad * 0.9);
-      g.add(hut);
+    // ── Mount Fuji — wide cone + snow cap, far -X background ──
+    const fujiMat = new THREE.MeshStandardMaterial({
+      color: 0x11141f, roughness: 1,
+      emissive: 0x0c1220, emissiveIntensity: 0.5,   // silhouette separation
+    });
+    const fuji = new THREE.Mesh(new THREE.ConeGeometry(18, 13, 48), fujiMat);
+    fuji.position.set(-16, 6.5, 38);
+    g.add(fuji);
+    const snowMat = new THREE.MeshStandardMaterial({
+      color: 0xb9c4d8, roughness: 0.9,
+      emissive: 0x33455e, emissiveIntensity: 0.55,
+    });
+    const snowCap = new THREE.Mesh(new THREE.ConeGeometry(5.2, 4.6, 48), snowMat);
+    snowCap.position.set(-16, 11.5, 38);
+    g.add(snowCap);
 
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.8, 0.9, 4), hutMat);
-      roof.position.set(hut.position.x, 1.9, hut.position.z);
-      roof.rotation.y = Math.PI / 4;
-      g.add(roof);
+    // Blood moon rising behind Fuji — the iconic silhouette shot.
+    // fog:false so it stays bright through the haze.
+    const moonDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(4.4, 40),
+      new THREE.MeshBasicMaterial({ color: 0xd8402e, fog: false }));
+    moonDisc.position.set(-13.5, 11.8, 52);
+    moonDisc.lookAt(1.2, 0.6, -3.6);   // face the invasion camera
+    g.add(moonDisc);
+
+    // ── Vermilion torii gate, centre mid-ground ──
+    const toriiMat = new THREE.MeshStandardMaterial({
+      color: 0xc23327, roughness: 0.6,
+      emissive: 0x521008, emissiveIntensity: 0.35,
+    });
+    const torii = new THREE.Group();
+    for (const sx of [-1, 1]) {
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.17, 3.4, 10), toriiMat);
+      pillar.position.set(sx * 1.15, 1.7, 0);
+      torii.add(pillar);
     }
+    const beamMid = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.16, 0.2), toriiMat);
+    beamMid.position.y = 2.8;
+    torii.add(beamMid);
+    const beamTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.22, 0.26), toriiMat);
+    beamTop.position.y = 3.5;
+    torii.add(beamTop);
+    const beamCap = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.16, 0.3), toriiMat);
+    beamCap.position.y = 3.72;
+    torii.add(beamCap);
+    torii.position.set(3, 0, 9);
+    torii.rotation.y = -0.25;
+    g.add(torii);
+
+    // ── Five-storey pagoda silhouette, left mid-ground ──
+    const pagodaMat = new THREE.MeshStandardMaterial({ color: 0x0a0c12, roughness: 1 });
+    const pagoda = new THREE.Group();
+    let py = 0;
+    for (let i = 0; i < 5; i++) {
+      const w = 2.4 - i * 0.32;
+      const storey = new THREE.Mesh(new THREE.BoxGeometry(w, 0.72, w), pagodaMat);
+      storey.position.y = py + 0.36;
+      pagoda.add(storey);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.92, 0.5, 4), pagodaMat);
+      roof.position.y = py + 0.97;
+      roof.rotation.y = Math.PI / 4;
+      pagoda.add(roof);
+      py += 1.02;
+    }
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), pagodaMat);
+    spire.position.y = py + 0.45;
+    pagoda.add(spire);
+    pagoda.position.set(-6, 0, 15);
+    g.add(pagoda);
+
+    // ── Gabled town houses scattered through the mid-ground ──
+    const houseMat = new THREE.MeshStandardMaterial({ color: 0x0a0d14, roughness: 1 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x141821, roughness: 0.9 });
+    const addHouse = (x, z, w, d, h, ry) => {
+      const house = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), houseMat);
+      body.position.y = h / 2;
+      house.add(body);
+      // Triangular-prism gable: 3-sided cylinder laid along X
+      const roof = new THREE.Mesh(new THREE.CylinderGeometry(d * 0.62, d * 0.62, w + 0.3, 3), roofMat);
+      roof.rotation.z = Math.PI / 2;
+      roof.position.y = h + d * 0.31;
+      house.add(roof);
+      house.position.set(x, 0, z);
+      house.rotation.y = ry;
+      g.add(house);
+    };
+    addHouse(-1.5, 12, 2.2, 1.8, 1.5, 0.2);
+    addHouse(6.5, 13, 2.6, 2.0, 1.7, -0.35);
+    addHouse(-10, 11, 2.0, 1.6, 1.4, 0.5);
+    addHouse(10.5, 10, 2.2, 1.7, 1.5, -0.15);
+    addHouse(1.5, 17, 2.8, 2.2, 1.8, 0.1);
+    addHouse(-4, 20, 2.4, 1.9, 1.6, -0.3);
 
     // Distant fires burning
     for (const p of [[-6, 9], [5, 14]]) {
@@ -430,6 +509,37 @@ export class PreludeScene {
     }, undefined, (e) => console.warn('PreludeScene: Spaceship.fbx load failed:', e));
   }
 
+  // Breathing idle so she never T-poses: slow and shallow while
+  // asleep, ramping to normal speed as she rises. Same Mixamo
+  // idle.fbx main.js uses; Hips X/Z pinned like stripRootMotion so
+  // she can't drift off the bed.
+  _loadIdleAnim(fbx) {
+    new FBXLoader().load('./assets/models/player/idle.fbx', (animFbx) => {
+      if (!animFbx.animations || !animFbx.animations.length) return;
+      const clip = animFbx.animations[0].clone();
+      for (const track of clip.tracks) {
+        if (!/Hips/i.test(track.name) || !/\.position/i.test(track.name)) continue;
+        const v = track.values;
+        if (!v || v.length < 3) continue;
+        const x0 = v[0], z0 = v[2];
+        for (let i = 0; i < v.length; i += 3) {
+          v[i] = x0;
+          v[i + 2] = z0;
+        }
+      }
+      this._mixer = new THREE.AnimationMixer(fbx);
+      this._idleAction = this._mixer.clipAction(clip);
+      this._idleAction.play();
+      this._applyIdleRate();
+    }, undefined, (e) => console.warn('PreludeScene: idle.fbx load failed:', e));
+  }
+
+  _applyIdleRate() {
+    if (!this._idleAction) return;
+    const k = this._riseK || 0;
+    this._idleAction.timeScale = 0.35 + k * 0.7;   // 0.35 asleep -> 1.05 risen
+  }
+
   _loadSorini() {
     new FBXLoader().load('./assets/models/player/sorini.fbx', (fbx) => {
       fbx.scale.setScalar(0.013);
@@ -451,6 +561,7 @@ export class PreludeScene {
       });
       this.scene.add(fbx);
       this.sorini = fbx;
+      this._loadIdleAnim(fbx);
 
       // The real chest reactor, riding Spine2 — hidden until the
       // flyer docks inside her.
@@ -482,6 +593,7 @@ export class PreludeScene {
     this.sorini.rotation.y = 0;
     this.sorini.position.lerpVectors(LIE_POS, STAND_POS, k);
     this._riseK = k;
+    this._applyIdleRate();
   }
 
   // Extra float while possessed (0..1) — up to ~30 cm off the floor
@@ -563,10 +675,10 @@ export class PreludeScene {
     const invasion = (mode === 'invasion');
     this.bedroomGroup.visible = !invasion;
     this.invasionGroup.visible = invasion;
-    this.scene.fog.density = invasion ? 0.024 : 0.045;
+    this.scene.fog.density = invasion ? 0.016 : 0.045;
     this.lampLight.intensity = invasion ? 0 : 1.1;
-    this.moonLight.intensity = invasion ? 0.35 : 1.15;
-    this.hemi.intensity = invasion ? 0.32 : 0.5;
+    this.moonLight.intensity = invasion ? 0.55 : 1.15;
+    this.hemi.intensity = invasion ? 0.55 : 0.5;
     // Crater props live in the bedroom group — hide their lights too
     this.craterLight.intensity = invasion ? 0 : (this.craterScar.visible ? 5 : 0);
   }
@@ -576,6 +688,8 @@ export class PreludeScene {
   // ======================================================
   update(dt, t) {
     this._time = t;
+
+    if (this._mixer) this._mixer.update(dt);
 
     // Meteor flight + trail
     if (this._meteorT >= 0) {

@@ -21,6 +21,7 @@
 import * as THREE from 'three';
 import { CinematicCamera } from '../ui/CinematicCamera.js';
 import { PreludeScene } from './PreludeScene.js';
+import { TrailerOverlay } from './TrailerOverlay.js';
 
 export class TrailerDirector {
   constructor({ renderer, audioManager, uiManager, menuScene, menuCanvas, onFinish }) {
@@ -64,8 +65,7 @@ export class TrailerDirector {
     if (this._menuCanvas) this._menuCanvas.style.display = 'none';
     if (this._ui) this._ui.hideAllScreens();
 
-    this._buildOverlay();
-
+    this._overlay = new TrailerOverlay();
     // Dedicated cinematic camera — the gameplay camera never runs
     this._camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
     this._camera.rotation.order = 'YXZ';
@@ -112,8 +112,10 @@ export class TrailerDirector {
     try { this._audio.setMusicVolume(0.6); } catch (e) {}
 
     // Close the book over the screen
-    this._setPagesOpen(false);
-    this._hideCaption();
+    if (this._overlay) {
+      this._overlay.setPagesOpen(false);
+      this._overlay.hideCaption();
+    }
 
     const settle = fast ? 350 : 620;
     setTimeout(() => {
@@ -126,16 +128,12 @@ export class TrailerDirector {
       if (this._onFinish) this._onFinish();
 
       // Fade the overlay out over the first gameplay frames, then clean up
-      const overlay = document.getElementById('trailer-overlay');
-      if (overlay) {
-        overlay.style.transition = 'opacity 0.7s ease';
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          overlay.remove();
-          if (this.prelude) { this.prelude.dispose(); this.prelude = null; }
-          this._finishing = false;
-        }, 800);
-      }
+      const done = () => {
+        if (this.prelude) { this.prelude.dispose(); this.prelude = null; }
+        this._finishing = false;
+      };
+      if (this._overlay) this._overlay.fadeOut(800).then(done);
+      else done();
     }, settle);
   }
 
@@ -190,12 +188,7 @@ export class TrailerDirector {
     }
 
     // ── REC timer ──
-    if (this._recEl && (this._t - (this._recLast || 0)) > 0.25) {
-      this._recLast = this._t;
-      const s = Math.floor(this._t);
-      this._recEl.textContent =
-        `● REC ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-    }
+    if (this._overlay) this._overlay.tick(this._t);
 
     // ── Render through the MAIN renderer (one canvas for OBS) ──
     const r = this._renderer;
@@ -349,144 +342,29 @@ export class TrailerDirector {
   }
 
   // ─────────────────────────────────────────
-  // DOM OVERLAY — letterbox, captions, flips, REC
+  // DOM OVERLAY — letterbox, captions, flips, REC (shared module)
   // ─────────────────────────────────────────
-  _buildOverlay() {
-    const el = document.createElement('div');
-    el.id = 'trailer-overlay';
-    el.innerHTML = `
-      <style>
-        #trailer-overlay {
-          position: fixed; inset: 0;
-          z-index: 250;                 /* over HUD/menu, under pause menu */
-          pointer-events: none;
-          font-family: 'Courier New', monospace;
-        }
-        #trailer-overlay .bar {
-          position: absolute; left: 0; right: 0; height: 12%;
-          background: #000;
-        }
-        #trailer-overlay .bar.top { top: 0; }
-        #trailer-overlay .bar.bottom { bottom: 0; }
-        #trailer-overlay .caption {
-          position: absolute; left: 50%; bottom: 17%;
-          transform: translateX(-50%);
-          max-width: 80%;
-          text-align: center;
-          color: #dffcff;
-          font-size: clamp(1rem, 2.2vw, 1.5rem);
-          letter-spacing: 3px;
-          text-shadow: 0 0 18px rgba(0, 217, 242, 0.75), 0 2px 4px #000;
-          opacity: 0;
-          transition: opacity 0.45s ease;
-          white-space: pre-line;
-        }
-        #trailer-overlay .rec {
-          position: absolute; top: calc(12% + 12px); left: 18px;
-          color: #ff5555;
-          font-size: 0.85rem;
-          letter-spacing: 2px;
-          opacity: 0.85;
-          text-shadow: 0 0 8px rgba(255, 60, 60, 0.6);
-        }
-        #trailer-overlay .skip-hint {
-          position: absolute; bottom: calc(12% + 12px); right: 18px;
-          color: #5a6a7a;
-          font-size: 0.75rem;
-          letter-spacing: 2px;
-          opacity: 0.8;
-        }
-        #trailer-overlay .flip {
-          position: absolute; inset: 0;
-          perspective: 1400px;
-        }
-        #trailer-overlay .page {
-          position: absolute; top: 0; bottom: 0; width: 50.15%;
-          background: #000;
-          transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
-          backface-visibility: hidden;
-          box-shadow: 0 0 40px rgba(0, 217, 242, 0.12);
-        }
-        #trailer-overlay .page.left  { left: 0;  transform-origin: left center; }
-        #trailer-overlay .page.right { right: 0; transform-origin: right center; }
-        #trailer-overlay.pages-open .page.left  { transform: rotateY(-92deg); }
-        #trailer-overlay.pages-open .page.right { transform: rotateY(92deg); }
-        #trailer-overlay .flash {
-          position: absolute; inset: 0;
-          background: #cfeeff;
-          opacity: 0;
-          transition: opacity 0.55s ease;
-        }
-      </style>
-      <div class="bar top"></div>
-      <div class="bar bottom"></div>
-      <div class="flip">
-        <div class="page left"></div>
-        <div class="page right"></div>
-      </div>
-      <div class="caption"></div>
-      <div class="flash"></div>
-      <div class="rec">● REC 00:00</div>
-      <div class="skip-hint">ESC — SKIP TRAILER</div>
-    `;
-    document.body.appendChild(el);
-
-    this._overlay = el;
-    this._captionEl = el.querySelector('.caption');
-    this._flashEl = el.querySelector('.flash');
-    this._recEl = el.querySelector('.rec');
-    this._skipEl = el.querySelector('.skip-hint');
-
-    // Pages start CLOSED (the closed book) — _run() opens them
-    el.classList.remove('pages-open');
-
-    // Fade the skip hint out after a few seconds — keep the frame clean
-    setTimeout(() => {
-      if (this._skipEl) {
-        this._skipEl.style.transition = 'opacity 1s ease';
-        this._skipEl.style.opacity = '0';
-      }
-    }, 5000);
-  }
-
   _setPagesOpen(open) {
-    if (!this._overlay) return;
-    // A closed book hides the screen; an open one reveals the scene.
-    if (open) this._overlay.classList.add('pages-open');
-    else this._overlay.classList.remove('pages-open');
+    if (this._overlay) this._overlay.setPagesOpen(open);
   }
 
   async _flipSwap(midFn) {
-    // Close both pages over the screen, let the caller re-dress the
-    // world behind them, then open onto the next "picture".
-    this._setPagesOpen(false);
-    await this._sleep(560);
-    if (this._cancelled) return;
-    if (midFn) midFn();
-    await this._sleep(120);
-    this._setPagesOpen(true);
-    await this._sleep(620);
+    if (!this._overlay) return;
+    await this._overlay.flipSwap(() => {
+      if (!this._cancelled && midFn) midFn();
+    });
   }
 
   _showCaption(text) {
-    if (!this._captionEl) return;
-    this._captionEl.textContent = text;
-    this._captionEl.style.opacity = '1';
+    if (this._overlay) this._overlay.showCaption(text);
   }
 
   _hideCaption() {
-    if (!this._captionEl) return;
-    this._captionEl.style.opacity = '0';
+    if (this._overlay) this._overlay.hideCaption();
   }
 
   _flash(duration = 550) {
-    if (!this._flashEl) return;
-    this._flashEl.style.transition = 'none';
-    this._flashEl.style.opacity = '0.95';
-    // Force a style flush so the fade-back always runs
-    void this._flashEl.offsetHeight;
-    this._flashEl.style.transition = `opacity ${duration}ms ease`;
-    this._flashEl.style.opacity = '0';
+    if (this._overlay) this._overlay.flash(duration);
   }
 
   _sleep(ms) {
