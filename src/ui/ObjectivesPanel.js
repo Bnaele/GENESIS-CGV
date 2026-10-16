@@ -10,6 +10,7 @@ let _list = null;
 let _toast = null;
 let _lastKey = null;
 let _doneTexts = new Set();
+let _activeTexts = new Set();
 
 export function createObjectivesPanel() {
   if (_container) return _container;
@@ -101,6 +102,7 @@ export function updateObjectives(items) {
     _container.style.display = 'none';
     _lastKey = null;
     _doneTexts = new Set();
+    _activeTexts = new Set();
     return;
   }
   _container.style.display = '';
@@ -113,21 +115,36 @@ export function updateObjectives(items) {
   const texts = items.map(i => i.text);
   if ([..._doneTexts].some(t => !texts.includes(t))) {
     _doneTexts = new Set(items.filter(i => i.done).map(i => i.text));
+    _activeTexts = new Set(items.filter(i => i.active && !i.done).map(i => i.text));
   }
 
-  // Banner for every objective that just flipped to done
+  // Banner when an objective completes (green) or becomes active (cyan) —
+  // the activation banner is how a new player learns what to do next.
   for (const i of items) {
     if (i.done && !_doneTexts.has(i.text)) {
       _doneTexts.add(i.text);
-      _toast.textContent = '\u2714 OBJECTIVE COMPLETE \u2014 ' + i.text.toUpperCase();
-      _toast.classList.remove('run');
-      void _toast.offsetWidth;   // restart the CSS animation
-      _toast.classList.add('run');
-      _toast.style.display = 'block';
-      clearTimeout(_toast._t);
-      _toast._t = setTimeout(() => { _toast.style.display = 'none'; }, 2450);
+      _fireToast('\u2714 OBJECTIVE COMPLETE \u2014 ' + i.text.toUpperCase(), 'done');
+    } else if (!i.done && i.active && !_activeTexts.has(i.text)) {
+      _activeTexts.add(i.text);
+      _fireToast('\u25B8 NEW OBJECTIVE \u2014 ' + i.text.toUpperCase(), 'active');
     }
   }
 
   _list.innerHTML = items.map(_row).join('');
+}
+
+function _fireToast(text, kind) {
+  const done = kind === 'done';
+  _toast.textContent = text;
+  _toast.style.borderColor = done ? 'rgba(0,255,170,0.6)' : 'rgba(0,170,255,0.65)';
+  _toast.style.color = done ? '#7dffc9' : '#a8ecff';
+  _toast.style.textShadow = done
+    ? '0 0 12px rgba(0,255,170,.5)'
+    : '0 0 12px rgba(0,170,255,.55)';
+  _toast.classList.remove('run');
+  void _toast.offsetWidth;   // restart the CSS animation
+  _toast.classList.add('run');
+  _toast.style.display = 'block';
+  clearTimeout(_toast._t);
+  _toast._t = setTimeout(() => { _toast.style.display = 'none'; }, 2450);
 }
