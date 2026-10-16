@@ -69,6 +69,12 @@ export class PreludeScene {
     // Cinematic lens — tighter than the gameplay 75° FOV
     this.camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
 
+    // State the build steps below push into — must exist first
+    this._meteorT = -1;          // <0 = not launched
+    this._meteorVel = new THREE.Vector3();
+    this._trail = [];
+    this._fireLights = [];
+
     this._buildLights();
     this._buildSky();
     this._buildRoom();
@@ -80,12 +86,6 @@ export class PreludeScene {
     // ── Sorini + her chest reactor ──
     this._soriniReady = false;
     this._loadSorini();
-
-    // ── Meteor + impact state ──
-    this._meteorT = -1;          // <0 = not launched
-    this._meteorVel = new THREE.Vector3();
-    this._trail = [];
-    this._fireLights = [];
 
     this._time = 0;
 
