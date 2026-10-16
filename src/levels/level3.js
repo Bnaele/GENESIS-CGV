@@ -1830,7 +1830,7 @@ export class ArchitectLevel {
       this._playRiseCamera();
       this.architect.beginRise({
         onFlash: () => {
-          if (window.__audioManager) window.__audioManager.playSfx('boss_phase_change');
+          if (window.__audioManager) window.__audioManager.playSfxAt('boss_phase_change', this.architect.getPosition());
         },
         onLanded: () => this._onArchitectLanded(),
       });
@@ -2068,7 +2068,7 @@ export class ArchitectLevel {
     this.architect.startCombat({
       onPhaseChange: (phase) => {
         this.bossHealthBar.setPhase(phase);
-        if (window.__audioManager) window.__audioManager.playSfx('boss_phase_change');
+        if (window.__audioManager) window.__audioManager.playSfxAt('boss_phase_change', this.architect.getPosition());
       },
       onDamagePlayer: (dmg) => {
         if (this.onDamagePlayer) this.onDamagePlayer(dmg);

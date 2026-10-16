@@ -51,6 +51,7 @@ window.__cinematicCamera = cinematicCamera;
 const audioManager = new AudioManager();
 loadAllAudio(audioManager);
 window.__audioManager = audioManager;
+audioManager.setListener(() => player.pos, camera);
 
 // ---------- root motion fix ----------
 function stripRootMotion(clip) {

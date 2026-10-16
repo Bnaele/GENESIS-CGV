@@ -7137,7 +7137,7 @@ createCityBackground() {
                 if (!tile._playerWasOn && window.__playerHealth) {
                   window.__playerHealth.takeDamage(tile.damage);
                   if (window.__audioManager) {
-                    window.__audioManager.playSfx('punch_hit');
+                    window.__audioManager.playSfxAt('punch_hit', tile.base.position);
                   }
                 }
                 tile._playerWasOn = true;

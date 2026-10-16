@@ -584,7 +584,7 @@ export class Architect {
         );
         if (dist < ATTACK_RANGE + 0.7) {   // generous — it's a greatsword
           this._attackDidHit = true;
-          if (window.__audioManager) window.__audioManager.playSfx('punch_hit');
+          if (window.__audioManager) window.__audioManager.playSfxAt('punch_hit', this.getPosition());
           if (this._combatCbs && this._combatCbs.onDamagePlayer) {
             this._combatCbs.onDamagePlayer(PHASE_DAMAGE[this.phase] || 4);
           }

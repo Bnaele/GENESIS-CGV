@@ -2,6 +2,7 @@
 // Central audio controller — handles music and SFX via Howler.js
 
 import { Howl } from 'howler';
+import * as THREE from 'three';
 
 export class AudioManager {
   constructor() {
@@ -11,6 +12,10 @@ export class AudioManager {
     this.musicVolume = 0.6;
     this.sfxVolume = 0.8;
     this.isMuted = false;
+    // Positional audio — main.js registers the listener (player + camera)
+    this._getListenerPos = null;
+    this._listenerCamera = null;
+    this._v = new THREE.Vector3();
   }
 
   loadSound(key, config) {
@@ -39,6 +44,46 @@ export class AudioManager {
   stopSound(key) {
     const s = this.sounds[key];
     if (s) s.stop();
+  }
+
+  // ── Positional SFX ──
+  // Volume falls off linearly with distance from the listener; stereo pan
+  // follows the source's bearing relative to the camera (Howler stereo()).
+  setListener(getPos, camera) {
+    this._getListenerPos = getPos;
+    this._listenerCamera = camera;
+  }
+
+  playSfxAt(key, srcPos) {
+    if (this.isMuted) return null;
+    const s = this.sounds[key];
+    if (!s) { console.warn(`SFX "${key}" not loaded`); return null; }
+
+    let lp = null, cam = null;
+    try {
+      lp = this._getListenerPos && this._getListenerPos();
+      cam = this._listenerCamera;
+    } catch (e) { /* listener not ready yet — play flat */ }
+    if (!srcPos || !lp || !cam) return this.playSfx(key);
+
+    const dx = srcPos.x - lp.x, dy = srcPos.y - lp.y, dz = srcPos.z - lp.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const MAX_DIST = 45;
+    const vol = this.sfxVolume * Math.max(0, 1 - dist / MAX_DIST);
+    if (vol <= 0.01) return null;   // too far away to hear
+
+    // Camera space: +x right, -z forward. sin(bearing) pans full L/R.
+    let pan = 0;
+    try {
+      this._v.set(dx, dy, dz).applyMatrix4(cam.matrixWorldInverse);
+      pan = Math.sin(Math.atan2(this._v.x, -this._v.z)) * 0.8;
+    } catch (e) { /* mono fallback */ }
+
+    s.stop();
+    const id = s.play();
+    s.volume(Math.min(1, vol), id);
+    s.stereo(Math.max(-1, Math.min(1, pan)), id);
+    return id;
   }
 
   // ── Music ──
