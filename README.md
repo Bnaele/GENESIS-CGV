@@ -86,8 +86,8 @@ Prerequisites:
 - **git-lfs** — required to pull the models and audio
 
 ```bash
-git clone https://github.com/RECLAIMED-GENESIS/GENESIS.git
-cd GENESIS
+git clone https://github.com/Bnaele/GENESIS-CGV.git
+cd GENESIS-CGV
 git lfs pull          # fetch ~150 MB of FBX/audio assets
 npm install
 npm run dev           # → http://localhost:5173
