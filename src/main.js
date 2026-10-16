@@ -21,7 +21,6 @@ import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
 import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
 import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
 import { showSummaryCard, hideSummaryCard } from './ui/SummaryCard.js';
-import { TrailerDirector } from './trailer/TrailerDirector.js';
 import { resetStats, gameStats } from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
@@ -435,11 +434,6 @@ addEventListener('keydown', e => {
     trueForm.tryActivate();
   }
   if (e.code === 'KeyR') switchLevel(current);
-
-  // ── F9 — trailer prologue (attract mode), menu only ──
-  if (e.code === 'F9' && !gameStarted.value && window.__trailerDirector) {
-    window.__trailerDirector.start();
-  }
 
     if (e.code === 'Space' && player.grounded && !attackLock && !keys._spaceConsumed
       && !keys.ShiftLeft && !keys.ShiftRight) {
@@ -1569,10 +1563,6 @@ const mainMenuElement = createMainMenu(
   // CREDITS
   () => {
     showCreditsOverlay();
-  },
-  // TRAILER — hands-free prologue for capturing footage (F9 also works)
-  () => {
-    if (window.__trailerDirector) window.__trailerDirector.start();
   }
 );
 
@@ -1604,41 +1594,7 @@ const menuScene = new MenuScene(menuCanvas);
 menuScene.start();
 window.__menuScene = menuScene;   // debug handle for live inspection
 
-// ── Trailer Director — hands-free prologue for capturing footage ──
-// Plays the storybook opening (Sorini's bedroom → artifact crash →
-// possession → drop into the invasion) through the main renderer,
-// then boots Level 1, whose own cinematic intro plays by itself.
-const trailerDirector = new TrailerDirector({
-  renderer,
-  audioManager,
-  uiManager,
-  menuScene,
-  menuCanvas,
-  onFinish: () => {
-    uiManager.hideAllScreens();
-    uiManager.showHUD();
-    if (!gameStarted.value) {
-      gameStarted.value = true;
-      switchLevel(1);
-      tick();
-    } else {
-      switchLevel(1);
-    }
-    requestGamePointerLock();
-  },
-});
-window.__trailerDirector = trailerDirector;
-
-const trailerBtn = document.getElementById('trailerBtn');
-if (trailerBtn) trailerBtn.addEventListener('click', () => trailerDirector.start());
-
 uiManager.showScreen('main-menu');
-
-// ?trailer=1 — auto-roll on load (kiosk / capture setups). Runs AFTER
-// the menu is up, so the director's hideAllScreens() wins the paint.
-if (new URLSearchParams(location.search).has('trailer')) {
-  trailerDirector.start();
-}
 
 // ---------- Vite HMR cleanup ----------
 if (import.meta.hot) {

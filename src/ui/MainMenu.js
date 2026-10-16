@@ -1,5 +1,5 @@
 // src/ui/MainMenu.js
-export function createMainMenu(onPlayClick, onControlsClick, onCreditsClick, onTrailerClick = () => {}) {
+export function createMainMenu(onPlayClick, onControlsClick, onCreditsClick) {
     const container = document.createElement('div');
     container.id = 'main-menu';
     container.className = 'ui-screen';
@@ -81,20 +81,6 @@ export function createMainMenu(onPlayClick, onControlsClick, onCreditsClick, onT
                 font-family: 'Courier New', monospace;
                 letter-spacing: 1px;
             ">CREDITS</button>
-            <br>
-            <button id="trailerBtn" style="
-                background: transparent;
-                border: 2px solid #555;
-                color: #aaa;
-                padding: 10px 30px;
-                font-size: 0.9rem;
-                cursor: pointer;
-                border-radius: 8px;
-                transition: all 0.2s ease;
-                width: 220px;
-                font-family: 'Courier New', monospace;
-                letter-spacing: 1px;
-            ">● TRAILER</button>
             <div style="
                 margin-top: 30px;
                 font-size: 0.7rem;
@@ -145,24 +131,10 @@ export function createMainMenu(onPlayClick, onControlsClick, onCreditsClick, onT
         creditsBtn.style.background = 'transparent';
     });
 
-    // Hover effects for Trailer button
-    const trailerBtn = container.querySelector('#trailerBtn');
-    trailerBtn.addEventListener('mouseenter', () => {
-        trailerBtn.style.borderColor = '#00ffff';
-        trailerBtn.style.color = '#00ffff';
-        trailerBtn.style.background = 'rgba(0,255,255,0.1)';
-    });
-    trailerBtn.addEventListener('mouseleave', () => {
-        trailerBtn.style.borderColor = '#555';
-        trailerBtn.style.color = '#aaa';
-        trailerBtn.style.background = 'transparent';
-    });
-
     // Attach Event Listeners
     playBtn.addEventListener('click', onPlayClick);
     controlsBtn.addEventListener('click', onControlsClick);
     creditsBtn.addEventListener('click', onCreditsClick);
-    trailerBtn.addEventListener('click', onTrailerClick);
 
     return container;
 }
