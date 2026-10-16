@@ -22,6 +22,7 @@ import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js
 import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
 import { showSummaryCard, hideSummaryCard } from './ui/SummaryCard.js';
 import { TrailerDirector } from './trailer/TrailerDirector.js';
+import { TrailerOverlay } from './trailer/TrailerOverlay.js';
 import { resetStats, gameStats } from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
@@ -1076,6 +1077,9 @@ function tick() {
 
   if (!level) return;
 
+  // Trailer capture overlays keep their REC timer running
+  if (trailerOverlay) trailerOverlay.tick(t);
+
   // Freeze the whole world while the pause menu is open — the last
   // presented frame stays on screen behind the overlay. The True Form
   // tip freezes through the same path.
@@ -1616,16 +1620,21 @@ const trailerDirector = new TrailerDirector({
   menuScene,
   menuCanvas,
   onFinish: () => {
-    uiManager.hideAllScreens();
-    uiManager.showHUD();
-    if (!gameStarted.value) {
-      gameStarted.value = true;
-      switchLevel(1);
-      tick();
-    } else {
-      switchLevel(1);
-    }
-    requestGamePointerLock();
+    // Trailer v2 chain: the prologue hands straight into the Level 2
+    // showcase, then Level 3 — one continuous capture through the
+    // main renderer.
+    window.__trailerLevel2 = true;
+    playerHealth.invincible = true;
+    bootShowcaseLevel(2, (lvl) => {
+      const run = lvl.trailerRun(getTrailerOverlay(), trailerAlive);
+      run.then(() => {
+        if (!trailerAlive()) return;
+        window.__trailerLevel2 = false;
+        bootShowcaseLevel(3, (l3) => {
+          l3.trailerRun(getTrailerOverlay(), trailerAlive);
+        });
+      });
+    });
   },
 });
 window.__trailerDirector = trailerDirector;
@@ -1635,39 +1644,75 @@ if (trailerBtn) trailerBtn.addEventListener('click', () => trailerDirector.start
 
 uiManager.showScreen('main-menu');
 
-// ?trailer=1 — auto-roll on load (kiosk / capture setups). Runs AFTER
-// the menu is up, so the director's hideAllScreens() wins the paint.
-if (new URLSearchParams(location.search).has('trailer')) {
-  trailerDirector.start();
+// ── Level showcase capture modes (?level2=1, ?standoff=1) ──
+// Hands-free montage runners live on the levels themselves
+// (level.trailerRun). Shared infrastructure: the overlay, a skip
+// latch, a synthetic-key helper for scripted moves, and one ESC
+// handler that ends the take by returning to the menu.
+let trailerOverlay = null;
+const getTrailerOverlay = () =>
+  (trailerOverlay ||= new TrailerOverlay({ skipHint: 'ESC — END CAPTURE' }));
+window.__trailerAlive = true;
+const trailerAlive = () => window.__trailerAlive !== false;
+
+window.__trailerKey = (code, downMs = 140) => {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code }));
+  setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code })), downMs);
+};
+
+let trailerEscArmed = false;
+function armTrailerEsc() {
+  if (trailerEscArmed) return;
+  trailerEscArmed = true;
+  window.addEventListener('keydown', (e) => {
+    if (e.code !== 'Escape') return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.__trailerAlive = false;
+    location.href = location.pathname;   // clean slate, back at the menu
+  }, true);
 }
 
-// ?standoff=1 — trailer capture: jump straight to the Architect
-// standoff in Level 3. The Guardians are silently cleared and Sorini
-// is placed before the throne; the rise + dialogue play, then the
-// duel is HELD — a face-off, not a fight.
-if (new URLSearchParams(location.search).has('standoff')) {
+function bootShowcaseLevel(n, run) {
   uiManager.hideAllScreens();
   uiManager.showHUD();
   if (!gameStarted.value) {
     gameStarted.value = true;
-    switchLevel(3);
+    switchLevel(n);
     tick();
   } else {
-    switchLevel(3);
+    switchLevel(n);
   }
   requestGamePointerLock();
+  armTrailerEsc();
   setTimeout(() => {
-    if (level && typeof level.trailerSkipToStandoff === 'function') {
-      level.trailerSkipToStandoff();
-      const ap = level.architect.getPosition();
-      player.pos.set(ap.x, 0, ap.z + 9);   // inside the 14 m rise trigger
-      player.pos.y = level.getSurfaceHeight
-        ? level.getSurfaceHeight(player.pos.x, player.pos.z)
-        : 0;
-      player.vel.set(0, 0, 0);
-      player.yaw = Math.PI;                // face the throne (-Z)
-    }
-  }, 1200);
+    if (level && typeof level.trailerRun === 'function') run(level);
+  }, 1500);
+}
+
+// ?trailer=1 — auto-roll on load (kiosk / capture setups). Runs AFTER
+// the menu is up, so the director's hideAllScreens() wins the paint.
+// The chain: prologue -> Level 2 showcase -> Level 3 showcase.
+if (new URLSearchParams(location.search).has('trailer')) {
+  trailerDirector.start();
+}
+
+// ?level2=1 — Level 2 showcase only: Enforcer, moves, electric tiles.
+if (new URLSearchParams(location.search).has('level2')) {
+  window.__trailerLevel2 = true;
+  playerHealth.invincible = true;
+  bootShowcaseLevel(2, (lvl) => {
+    lvl.trailerRun(getTrailerOverlay(), trailerAlive);
+  });
+}
+
+// ?standoff=1 — Level 3 showcase: surroundings, Blade, Fist, then the
+// Architect standoff with Sorini in her True Form. The Guardians are
+// silently cleared mid-run; the duel is HELD — a face-off, not a fight.
+if (new URLSearchParams(location.search).has('standoff')) {
+  bootShowcaseLevel(3, (lvl) => {
+    lvl.trailerRun(getTrailerOverlay(), trailerAlive);
+  });
 }
 
 // ---------- Vite HMR cleanup ----------
