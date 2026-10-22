@@ -6632,6 +6632,7 @@ createCityBackground() {
 
     const farZ = 143;
 
+    // [x, width, depth, height] — z comes from farZ, not the row.
     const farBuildings = [
         [-31, 28, 15, 42],
         [-15, 40, 18, 55],
@@ -6642,14 +6643,14 @@ createCityBackground() {
         [45, 24, 16, 44]
     ];
 
-    farBuildings.forEach((data, index) => {
+    farBuildings.forEach(([x, width, depth, height], index) => {
 
         createBackgroundBuilding(
-            data[0],
+            x,
             farZ,
-            data[2],
-            data[3],
-            data[4],
+            width,
+            depth,
+            height,
             index
         );
 
