@@ -1667,6 +1667,11 @@ window.__restartToMenu = restartToMenu;
 // Main Menu — with PLAY and CREDITS callbacks
 const gameStarted = { value: false };
 
+const LEVEL1_STORY =
+  'The Axiom on Sorini\'s chest drew her to an unfamiliar land — and the aliens ' +
+  'hunting it followed. Stop them before they ruin the village looking for her, ' +
+  'then face the Warden.';
+
 const mainMenuElement = createMainMenu(
   // PLAY
   () => {
@@ -1681,7 +1686,7 @@ const mainMenuElement = createMainMenu(
     updateLoadingScreen(
       'LEVEL 1',
       'THE GROVE VILLAGE',
-      'Sorini awakens in an unfamiliar land. Fight your way through the villagers\' shadows and find the Warden.',
+      LEVEL1_STORY,
       0,
       'Initializing...'
     );
@@ -1695,7 +1700,7 @@ const mainMenuElement = createMainMenu(
         updateLoadingScreen(
           'LEVEL 1',
           'THE GROVE VILLAGE',
-          'Sorini awakens in an unfamiliar land. Fight your way through the villagers\' shadows and find the Warden.',
+          LEVEL1_STORY,
           100,
           'Ready!',
           true
@@ -1725,7 +1730,7 @@ const mainMenuElement = createMainMenu(
         updateLoadingScreen(
           'LEVEL 1',
           'THE GROVE VILLAGE',
-          'Sorini awakens in an unfamiliar land. Fight your way through the villagers\' shadows and find the Warden.',
+          LEVEL1_STORY,
           progress,
           statuses[statusIndex % statuses.length]
         );
