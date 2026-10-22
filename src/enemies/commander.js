@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { recordKO } from '../utils/stats.js';
+import { StateTimers } from '../utils/StateTimers.js';
 import { loadGruntAssets } from './grunts.js';
 
 export class Commander {
@@ -46,6 +47,7 @@ export class Commander {
     this.actions = {};
     this.model = null;
     this.hitFlashTimer = 0;
+    this._timers = new StateTimers();
 
     // Minion spawn thresholds (HP percentages)
     this.spawnThresholds = [
@@ -137,9 +139,12 @@ export class Commander {
   // UPDATE — called every frame
   // ─────────────────────────────────────────
   update(delta, playerPos) {
-    if (!this.alive) return;
-
+    // Mixer and queued state steps run before the alive guard — the death
+    // animation has to keep playing and the onDeath beat still has to land.
     this.mixer?.update(delta);
+    this._timers.tick(delta);
+
+    if (!this.alive) return;
 
     // Update phase based on HP
     const hpPct = this.health / this.MAX_HEALTH;
@@ -228,10 +233,10 @@ export class Commander {
     this._attackDidHit = false;
 
     // Reset after animation
-    setTimeout(() => {
+    this._timers.after(0.7, () => {
       this.isAttacking = false;
-      this._playAction('idle');
-    }, 700);
+      if (this.alive) this._playAction('idle');
+    });
   }
 
   _updateAttack(delta, distance) {
@@ -252,10 +257,10 @@ export class Commander {
     this._chargeDidHit = false;
     this._playAction('run', true);
 
-    setTimeout(() => {
+    this._timers.after(0.6, () => {
       this.isCharging = false;
-      this._playAction('idle');
-    }, 600);
+      if (this.alive) this._playAction('idle');
+    });
   }
 
   _updateCharge(delta, distance) {
@@ -279,10 +284,10 @@ export class Commander {
 
     if (this.callbacks.onRoar) this.callbacks.onRoar();
 
-    setTimeout(() => {
+    this._timers.after(1.5, () => {
       this.isRoaring = false;
-      this._playAction('idle');
-    }, 1500);
+      if (this.alive) this._playAction('idle');
+    });
   }
 
   _updateRoar(delta, distance) {
@@ -323,9 +328,9 @@ export class Commander {
     // Hit reaction
     if (this.actions.hit && !this.isCharging) {
       this._playAction('hit', false);
-      setTimeout(() => {
+      this._timers.after(0.4, () => {
         if (this.alive) this._playAction('idle');
-      }, 400);
+      });
     }
 
     if (this.health <= 0) {
@@ -368,15 +373,16 @@ export class Commander {
     this.alive = false;
     this._playAction('die', false);
 
-    setTimeout(() => {
+    this._timers.after(1.5, () => {
       if (this.callbacks.onDeath) this.callbacks.onDeath();
-    }, 1500);
+    });
   }
 
   // ─────────────────────────────────────────
   // CLEANUP
   // ─────────────────────────────────────────
   dispose() {
+    this._timers.clear();
     if (this.model) {
       this.model.traverse((o) => {
         if (o.isMesh) {

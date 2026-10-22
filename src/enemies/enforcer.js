@@ -8,6 +8,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { recordKO } from '../utils/stats.js';
+import { StateTimers } from '../utils/StateTimers.js';
 
 // Bone-name remap (FBX clips vs GLB skeleton)
 function normalizeBoneName(name) {
@@ -104,6 +105,7 @@ export class Enforcer {
     this._flinchTimer = 0;    // min gap between hit-reaction flinches
     this._flinching = false;  // riding out a hit reaction right now
     this._playerPos = null;   // last known player position (per-frame)
+    this._timers = new StateTimers();
 
     // Minion spawn thresholds
     this.spawnThresholds = [
@@ -214,6 +216,10 @@ export class Enforcer {
     // Keep the mixer running even after death so the death animation plays.
     // Only the AI logic should stop when `alive` is false.
     this.mixer?.update(delta);
+
+    // Queued state steps (combo chain, charge, flinch, death) resolve on
+    // game time — before the alive guard, so the death beat still lands.
+    this._timers.tick(delta);
 
     if (!this.alive) return;
 
@@ -345,20 +351,20 @@ export class Enforcer {
     this._playAction(key, false);
     const durMs = this._clipMs(key, 700);
 
-    setTimeout(() => {
+    this._timers.after(durMs / 1000, () => {
       if (!this.alive || !this.isAttacking) return;
       this._comboIndex++;
       if (this._comboIndex < this._combo.length) {
         this._attackDidHit = false;   // each strike lands on its own
         this._playComboStrike();
       } else {
-        setTimeout(() => {            // brief recovery between combos
+        this._timers.after(this._recoveryMs() / 1000, () => {   // brief recovery between combos
           if (!this.alive) return;
           this.isAttacking = false;
           this._playAction('idle');
-        }, this._recoveryMs());
+        });
       }
-    }, durMs);
+    });
   }
 
   // Curated chains — kicks show up from the opening bell, and bigger
@@ -405,10 +411,10 @@ export class Enforcer {
     this._chargeDidHit = false;
     this._playAction('run', true);
 
-    setTimeout(() => {
+    this._timers.after(0.6, () => {
       this.isCharging = false;
-      this._playAction('idle');
-    }, 600);
+      if (this.alive) this._playAction('idle');
+    });
   }
 
   _updateCharge(delta, distance) {
@@ -433,10 +439,10 @@ export class Enforcer {
 
     if (this.callbacks.onRoar) this.callbacks.onRoar();
 
-    setTimeout(() => {
+    this._timers.after(this._clipMs(key, 1500) / 1000, () => {
       this.isRoaring = false;
-      this._playAction('idle');
-    }, this._clipMs(key, 1500));
+      if (this.alive) this._playAction('idle');
+    });
   }
 
   _checkMinionSpawns() {
@@ -469,10 +475,10 @@ export class Enforcer {
         const recoverMs = Math.max(400, this._clipMs(hitKey, 400) * 0.8);
         this._flinching = true;
         this._flinchTimer = recoverMs / 1000 + 0.4;
-        setTimeout(() => {
+        this._timers.after(recoverMs / 1000, () => {
           this._flinching = false;
           if (this.alive) this._playAction('idle');
-        }, recoverMs);
+        });
       }
     }
 
@@ -518,13 +524,14 @@ export class Enforcer {
     this._flinching = false;
     this._playAction('die', false);
 
-    setTimeout(() => {
+    this._timers.after(1.5, () => {
       if (this.callbacks.onDeath) this.callbacks.onDeath();
-    }, 1500);
+    });
   }
 
   dispose() {
     this.scene.remove(this._group);
+    this._timers.clear();
     this.mixer = null;
     this.actions = {};
     this.clips = {};

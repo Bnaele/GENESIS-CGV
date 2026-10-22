@@ -20,6 +20,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { recordKO } from '../utils/stats.js';
+import { StateTimers } from '../utils/StateTimers.js';
 
 // ── Asset paths ────────────────────────────────────────────
 const MODEL_BASE   = './assets/models/enemy/';
@@ -217,6 +218,7 @@ export class Architect {
     this._riseCbs = null;
     this._combatCbs = null;
     this._origMats = null;
+    this._timers = new StateTimers();
 
     this._disposed = false;
 
@@ -506,11 +508,11 @@ export class Architect {
     // Opening flourish — he's been sitting for eons
     if (this.actions.taunt) {
       this._playAction('taunt', false);
-      setTimeout(() => {
+      this._timers.after(this._clipMs('taunt', 2000) / 1000, () => {
         if (this.alive && this.state === 'fighting' && !this.isAttacking) {
           this._playAction('idle');
         }
-      }, this._clipMs('taunt', 2000));
+      });
     }
   }
 
@@ -577,7 +579,7 @@ export class Architect {
     const durMs = this._clipMs(key, 700);
 
     // Damage lands mid-swing if she's still in reach
-    setTimeout(() => {
+    this._timers.after(durMs * 0.4 / 1000, () => {
       if (!this.alive || !this.isAttacking || this._attackDidHit) return;
       if (this._playerPos) {
         const dist = Math.hypot(
@@ -592,22 +594,22 @@ export class Architect {
           }
         }
       }
-    }, durMs * 0.4);
+    });
 
-    setTimeout(() => {
+    this._timers.after(durMs / 1000, () => {
       if (!this.alive || !this.isAttacking) return;
       this._comboIndex++;
       if (this._comboIndex < this._combo.length) {
         this._attackDidHit = false;
         this._playComboStrike();
       } else {
-        setTimeout(() => {
+        this._timers.after(this._recoveryMs() / 1000, () => {
           if (!this.alive) return;
           this.isAttacking = false;
           if (this.state === 'fighting') this._playAction('idle');
-        }, this._recoveryMs());
+        });
       }
-    }, durMs);
+    });
   }
 
   takeDamage(amount) {
@@ -641,12 +643,12 @@ export class Architect {
       this._flinching = true;
       this._flinchTimer = 0.6 + this._clipMs('hit', 500) / 1000;
       this._playAction('hit', false);
-      setTimeout(() => {
+      this._timers.after(Math.min(this._clipMs('hit', 500), 650) / 1000, () => {
         this._flinching = false;
         if (this.alive && this.state === 'fighting' && !this.isAttacking) {
           this._playAction('idle');
         }
-      }, Math.min(this._clipMs('hit', 500), 650));
+      });
     }
   }
 
@@ -658,11 +660,11 @@ export class Architect {
     // Phase flourish — taunts while the new pace kicks in
     if (this.actions.taunt && !this.isAttacking) {
       this._playAction('taunt', false);
-      setTimeout(() => {
+      this._timers.after(this._clipMs('taunt', 2000) / 1000, () => {
         if (this.alive && this.state === 'fighting' && !this.isAttacking) {
           this._playAction('idle');
         }
-      }, this._clipMs('taunt', 2000));
+      });
     }
   }
 
@@ -683,17 +685,17 @@ export class Architect {
       : new THREE.Vector3(0, 0, 1);
     const steps = 6;
     for (let i = 1; i <= steps; i++) {
-      setTimeout(() => {
+      this._timers.after((dur / steps) * i / 1000, () => {
         if (!this.alive) return;
         this.char.position.addScaledVector(away, 2.2 / steps);
-      }, (dur / steps) * i);
+      });
     }
-    setTimeout(() => {
+    this._timers.after(dur / 1000, () => {
       this._flinching = false;
       if (this.alive && this.state === 'fighting' && !this.isAttacking) {
         this._playAction('idle');
       }
-    }, dur);
+    });
   }
 
   _die() {
@@ -767,6 +769,10 @@ export class Architect {
     if (this.mixer) this.mixer.update(dt);
     if (this._disposed) return;
 
+    // Queued combat steps resolve on game time, in every state, so the
+    // pause menu freezes him with the rest of the world.
+    this._timers.tick(dt);
+
     if (this.state === 'rising') {
       this._updateRise(dt);
       return;
@@ -831,6 +837,7 @@ export class Architect {
 
   dispose() {
     this._disposed = true;
+    this._timers.clear();
     if (this.mixer) {
       try { this.mixer.stopAllAction(); } catch (e) {}
       this.mixer = null;
