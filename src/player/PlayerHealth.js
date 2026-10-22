@@ -2,6 +2,8 @@
 // Central player health system — shared across all levels.
 // Emits events, controls the top-left HUD bar, handles i-frames and death.
 
+import { recordDamageTaken, recordHitTaken, recordHitAbsorbed } from '../utils/stats.js';
+
 export class PlayerHealth {
     constructor(callbacks = {}) {
     this.maxHp = 100;
@@ -95,10 +97,18 @@ export class PlayerHealth {
     // PUBLIC API
     // =========================================================
     takeDamage(amount) {
-        if (this.dead || this.invincible || this._hurtCooldown > 0) return false;
+        if (this.dead) return false;
+        // i-frames and the merge swallow the hit — counted separately so
+        // the debrief can show what Axiom absorbed versus what landed.
+        if (this.invincible || this._hurtCooldown > 0) {
+            recordHitAbsorbed();
+            return false;
+        }
 
         this._hurtCooldown = this._iframeDuration;
         this.hp = Math.max(0, this.hp - amount);
+        recordDamageTaken(amount);
+        recordHitTaken();
         this._updateBar();
 
         // Directional red vignette — main.js owns the visuals

@@ -13,7 +13,7 @@ import { Enemy, STATE } from './streetEnemies.js';
 import {
   resolveEntity, pushOutOfCircle, worldColliders
 } from '../physics/CollisionSystem.js';
-import { recordKO } from '../utils/stats.js';
+import { recordKO, recordDamageDealt } from '../utils/stats.js';
 
 const GRAV = 30;
 
@@ -504,6 +504,7 @@ export class Guardian extends Enemy {
     this._releaseSlot();
     this.swingLanded = false;
     if (this.vel) this.vel.set(0, 0, 0);
+    recordDamageDealt(Math.min(amount, this.health));
     this.health -= amount;
 
     if (this.health <= 0) { recordKO(); this._die(); this.dead = true; return true; }

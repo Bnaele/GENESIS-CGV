@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { recordKO } from '../utils/stats.js';
+import { recordKO, recordDamageDealt } from '../utils/stats.js';
 import { StateTimers } from '../utils/StateTimers.js';
 
 // Bone-name remap (FBX clips vs GLB skeleton)
@@ -460,6 +460,7 @@ export class Enforcer {
   takeDamage(amount) {
     if (!this.alive) return;
 
+    recordDamageDealt(Math.min(amount, this.health));
     this.health -= amount;
     this.hitFlashTimer = 0.15;
     this._flashColor();

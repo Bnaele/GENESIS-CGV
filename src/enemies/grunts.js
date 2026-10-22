@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { recordKO } from '../utils/stats.js';
+import { recordKO, recordDamageDealt } from '../utils/stats.js';
 import { applyDissolveToModel, sharedDissolveNoise } from '../shaders/shaders.js';
 
 // ── Root motion stripper ──
@@ -374,6 +374,8 @@ export class Grunt {
 
   takeDamage(amount) {
     if (!this.alive) return;
+    // killAll() sweeps with takeDamage(999) — cleanup, not player damage
+    if (!this._silentDeath) recordDamageDealt(Math.min(amount, this.health));
     this.health -= amount;
     this.hitFlashTimer = 0.12;
     this._flashColor();

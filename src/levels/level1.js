@@ -200,11 +200,10 @@ export class StreetLevel {
       this.level,
       this._h.bind(this),
       this.pathX.bind(this),
+      // main.js shows the debrief here and builds Level 2 when the
+      // player continues — the level must not switch itself.
       () => {
         if (typeof this.onLevelComplete === 'function') this.onLevelComplete();
-        setTimeout(() => {
-          if (typeof window.__switchLevel === 'function') window.__switchLevel(2);
-        }, 1200);
       }
     );
 

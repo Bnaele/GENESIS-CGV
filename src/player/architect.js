@@ -19,7 +19,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-import { recordKO } from '../utils/stats.js';
+import { recordKO, recordDamageDealt } from '../utils/stats.js';
 import { StateTimers } from '../utils/StateTimers.js';
 
 // ── Asset paths ────────────────────────────────────────────
@@ -614,6 +614,7 @@ export class Architect {
 
   takeDamage(amount) {
     if (!this.canBeHit()) return;
+    recordDamageDealt(Math.min(amount, this.health));
     this.health -= amount;
     this._flashColor();
     if (this.health <= 0) {

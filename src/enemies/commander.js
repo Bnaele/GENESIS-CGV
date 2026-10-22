@@ -3,7 +3,7 @@
 // Giant grunt (grunt.fbx scaled 2×) with dark red + gold accents
 
 import * as THREE from 'three';
-import { recordKO } from '../utils/stats.js';
+import { recordKO, recordDamageDealt } from '../utils/stats.js';
 import { StateTimers } from '../utils/StateTimers.js';
 import { loadGruntAssets } from './grunts.js';
 
@@ -321,6 +321,7 @@ export class Commander {
   takeDamage(amount) {
     if (!this.alive) return;
 
+    recordDamageDealt(Math.min(amount, this.health));
     this.health -= amount;
     this.hitFlashTimer = 0.15;
     this._flashColor();

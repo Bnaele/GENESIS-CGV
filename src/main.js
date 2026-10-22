@@ -20,9 +20,13 @@ import { CinematicCamera } from './ui/CinematicCamera.js';
 import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
 import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
 import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
-import { showSummaryCard, hideSummaryCard } from './ui/SummaryCard.js';
+import { showLevelClear, hideDebrief, isDebriefVisible } from './ui/DebriefScreen.js';
 import { showFailScreen, hideFailScreen, isFailScreenVisible } from './ui/FailScreen.js';
-import { resetStats, gameStats, recordDeath } from './utils/stats.js';
+import {
+  resetStats, resetRunStats, gameStats, runStats, recordDeath,
+  recordAttack, recordAttackLanded, recordDash, recordTrueFormTime,
+  recordPlayTime, attackAccuracy, computeRank, parForLevel,
+} from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 
@@ -94,6 +98,7 @@ const playerHealth = new PlayerHealth({
     trueForm.abort();   // dying ends the merge instantly
     _lastDeathPos = player.pos.clone();
     recordDeath();
+    _levelDeaths++;
     showDeathScreen();
   },
   onRespawn: (spawnPos) => {
@@ -405,7 +410,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (!gameStarted.value || !level) return;
     if (cinematicCamera.active) return;
-    if (isFailScreenVisible()) return;   // dead — the fail screen owns Esc-less input
+    if (isFailScreenVisible() || isDebriefVisible()) return;   // dead or level cleared — those screens own input
     if (document.getElementById('endOverlay')) return;
     if (tipPause) return;   // the True Form tip is modal — no pause menu on top
     if (pauseMenu.visible) {
@@ -416,7 +421,9 @@ addEventListener('keydown', e => {
     return;
   }
 
-  if (pauseMenu.visible || tipPause || isFailScreenVisible()) return;   // gameplay input frozen while paused
+  // Gameplay input frozen while paused, dead, or reading the debrief —
+  // the debrief keeps its own Space/Enter listener for CONTINUE.
+  if (pauseMenu.visible || tipPause || isFailScreenVisible() || isDebriefVisible()) return;
 
   keys[e.code] = true;
   // Arrows drive the same movement keys as WASD
@@ -456,21 +463,24 @@ addEventListener('keydown', e => {
     attackCooldown.f = 0.7 * trueForm.attackRateMult;
     playSoriniAction('punch', false);
     _triggerAttack();
-    _damageEnemiesIfClose(1);
+    recordAttack('punch');
+    if (_damageEnemiesIfClose(1)) recordAttackLanded();
     audioManager.playSfx('punch_hit');
   }
   if (e.code === 'KeyG' && attackCooldown.g <= 0) {
     attackCooldown.g = 0.8 * trueForm.attackRateMult;
     playSoriniAction('kick', false);
     _triggerAttack();
-    _damageEnemiesIfClose(2);
+    recordAttack('kick');
+    if (_damageEnemiesIfClose(2)) recordAttackLanded();
     audioManager.playSfx('punch_hit');
   }
   if (e.code === 'KeyH' && attackCooldown.h <= 0) {
     attackCooldown.h = 0.7 * trueForm.attackRateMult;
     playSoriniAction('hook', false);
     _triggerAttack();
-    _damageEnemiesIfClose(2);
+    recordAttack('hook');
+    if (_damageEnemiesIfClose(2)) recordAttackLanded();
     audioManager.playSfx('punch_hit');
   }
 });
@@ -483,16 +493,19 @@ function _triggerAttack() {
   }
 }
 
+// Returns true when the swing connected with something — the debrief's
+// accuracy figure is landed swings over swings thrown.
 function _damageEnemiesIfClose(damage) {
-  if (!level) return;
+  if (!level) return false;
   damage = damage * trueForm.damageMult;
+  let landed = false;
 
   if (level.commander && level.commander.alive) {
     const dist = level.commander.getPosition().distanceTo(player.pos);
-    if (dist < 2.5) level.commander.takeDamage(damage);
+    if (dist < 2.5) { level.commander.takeDamage(damage); landed = true; }
   }
   if (level.grunts) {
-    level.grunts.checkHit(player.pos, 2.2, damage);
+    if (level.grunts.checkHit(player.pos, 2.2, damage)) landed = true;
   }
 
   // Level 3 guardians — previously unhittable: no branch here at all.
@@ -502,20 +515,22 @@ function _damageEnemiesIfClose(damage) {
       if (!g || g._disposed || g.dead) continue;
       const dx = g.group.position.x - player.pos.x;
       const dz = g.group.position.z - player.pos.z;
-      if (Math.hypot(dx, dz) < 2.6) g.takeDamage(damage);
+      if (Math.hypot(dx, dz) < 2.6) { g.takeDamage(damage); landed = true; }
     }
   }
 
   if (level.enforcer && level.enforcer.alive) {
     const dist = level.enforcer.getPosition().distanceTo(player.pos);
-    if (dist < 2.0) level.enforcer.takeDamage(damage);
+    if (dist < 2.0) { level.enforcer.takeDamage(damage); landed = true; }
   }
 
   // Level 3 final boss — only hittable once he's actually fighting
   if (level.architect && level.architect.canBeHit && level.architect.canBeHit()) {
     const dist = level.architect.getPosition().distanceTo(player.pos);
-    if (dist < 2.8) level.architect.takeDamage(damage);
+    if (dist < 2.8) { level.architect.takeDamage(damage); landed = true; }
   }
+
+  return landed;
 }
 
 addEventListener('keyup', e => {
@@ -542,6 +557,7 @@ renderer.domElement.addEventListener('click', () => {
 function _triggerDash() {
   dash.cooldown = dash.maxCooldown;
   dash.activeTimer = dash.duration;
+  recordDash();
 
   // Direction: where the player is currently moving (WASD) or facing
   const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0);
@@ -615,6 +631,7 @@ document.addEventListener('pointerlockchange', () => {
       !(window.__dialogue && window.__dialogue.active) &&
       !cinematicCamera.active &&
       !isFailScreenVisible() &&
+      !isDebriefVisible() &&
       !document.getElementById('endOverlay')) {
     pauseMenu.show();
   }
@@ -705,8 +722,7 @@ addEventListener('mousemove', e => {
 // ---------- levels ----------
 const LEVELS = { 1: StreetLevel, 2: AlienLevel, 3: ArchitectLevel };
 let level = null, current = 1;
-// Level-complete summary card — timer + one-shot trigger, reset per level
-let _levelStartTime = performance.now();
+// One-shot guard — a level must not be able to fire the debrief twice
 let _summaryShown = false;
 
 function disposeCurrentLevel() {
@@ -753,6 +769,12 @@ function disposeCurrentLevel() {
 // level with { checkpoint: n } so it constructs in the post-gate state.
 let checkpoint = null;
 
+// Deaths in the level currently being played. Kept out of gameStats
+// because a retry rebuilds the level and resetStats() would wipe it —
+// the debrief has to show every death it took to finish, not just the
+// ones from the successful attempt. Cleared when the level is cleared.
+let _levelDeaths = 0;
+
 function showCheckpointToast(label) {
   const t = document.createElement('div');
   t.style.cssText = `
@@ -793,7 +815,9 @@ function showDeathScreen() {
   const cp = checkpoint;
   showFailScreen({
     checkpointLabel: cp ? cp.label : 'LEVEL START',
-    deaths: gameStats.deaths,
+    // Run total, not the level total — a retry resets gameStats, which
+    // would otherwise pin Axiom to the same quote forever.
+    deaths: runStats.deaths,
     onRetry: () => retryFromCheckpoint(),
     onRestart: () => {
       switchLevel(current);
@@ -815,15 +839,47 @@ function retryFromCheckpoint() {
   requestGamePointerLock();
 }
 
+// ── Level clear — the debrief owns the transition ──
+// The levels only report that the exit was reached; the next level is
+// built when the player dismisses this screen, so nothing is ever torn
+// down underneath them while they are still reading their result.
+function showLevelComplete() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  audioManager.pauseMusic();
+  if (cinematicCamera.active) cinematicCamera.stop();
+
+  const finished = current;
+  const timeSec = gameStats.playSeconds;
+  const rank = computeRank({
+    deaths: _levelDeaths,
+    damageTaken: gameStats.damageTaken,
+    accuracy: attackAccuracy(gameStats),
+    timeSec,
+    parSec: parForLevel(finished),
+  });
+
+  showLevelClear({
+    levelName: level ? level.name : `LEVEL ${finished}`,
+    stats: { ...gameStats, deaths: _levelDeaths },
+    rank,
+    timeSec,
+    health: playerHealth.hp,
+    maxHealth: playerHealth.maxHp,
+    nextLabel: `CONTINUE — LEVEL ${finished + 1}`,
+    onContinue: () => {
+      _levelDeaths = 0;
+      switchLevel(finished + 1);
+      requestGamePointerLock();
+    },
+  });
+}
+
 function switchLevel(n, opts = {}) {
   disposeCurrentLevel();
-  // A summary card may still be up from the portal that triggered this
-  // switch — let it linger through the transition, then clear it.
-  hideSummaryCard(3500);
+  hideDebrief();
 
   current = n;
   _lastDeathPos = null;
-  _levelStartTime = performance.now();
   _summaryShown = false;
   resetStats();
   trueForm.reset();   // never carry the merge across a level switch
@@ -875,20 +931,13 @@ function switchLevel(n, opts = {}) {
     level.onCheckpoint = (index, label) => setCheckpoint(index, label);
 
     // Levels call this the moment the exit portal is entered — the
-    // summary card pops then, not at boss death (the post-fight
-    // cinematic would outlast it). Level 3 never calls it: its ending
-    // cinematic replaces the card.
+    // debrief freezes the world there and holds the transition until the
+    // player continues. Level 3 never calls it: its ending cinematic
+    // closes the run with the campaign summary instead.
     level.onLevelComplete = () => {
       if (_summaryShown) return;
       _summaryShown = true;
-      showSummaryCard({
-        title: `LEVEL ${current} CLEAR`,
-        timeSec: (performance.now() - _levelStartTime) / 1000,
-        kos: gameStats.kos,
-        deaths: gameStats.deaths,
-        health: playerHealth.hp,
-        maxHealth: playerHealth.maxHp,
-      });
+      showLevelComplete();
     };
   }
 
@@ -1166,8 +1215,14 @@ function tick() {
 
   // Freeze the whole world while the pause menu is open — the last
   // presented frame stays on screen behind the overlay. The True Form
-  // tip and the MISSION FAILED screen freeze through the same path.
-  if (pauseMenu.visible || tipPause || isFailScreenVisible()) return;
+  // tip, the MISSION FAILED screen and the level debrief freeze through
+  // the same path, so none of them tick up the play clock.
+  if (pauseMenu.visible || tipPause || isFailScreenVisible() || isDebriefVisible()) return;
+
+  // Real time, not dtW — the merge slows dtW, which would under-count
+  // both the clock and the seconds spent merged.
+  recordPlayTime(dt);
+  if (trueForm.active) recordTrueFormTime(dt);
 
   playerHealth.update(dt);
 
@@ -1571,13 +1626,15 @@ const pauseMenu = new PauseMenu({
 function restartToMenu() {
   if (document.pointerLockElement) document.exitPointerLock();
   pauseMenu.hide();
-  hideSummaryCard();
+  hideDebrief();
   hideFailScreen();
 
   disposeCurrentLevel();
   level = null;
   current = 1;
   _lastDeathPos = null;
+  _levelDeaths = 0;
+  resetRunStats();   // the campaign total belongs to the run just finished
 
   // Remove any ending overlay left over from the Level 3 endings
   const endOverlay = document.getElementById('endOverlay');

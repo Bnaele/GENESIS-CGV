@@ -4,7 +4,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-import { recordKO } from '../utils/stats.js';
+import { recordKO, recordDamageDealt } from '../utils/stats.js';
 
 // ─────────────────────────────────────────────────────────────
 // DOM HELPERS
@@ -506,6 +506,7 @@ export class Enemy {
     if (this.state === STATE.DEAD || this._disposed) return false;
     this._releaseSlot();      // getting hit knocks them out of their attack turn
     this.swingLanded = false; // and cancels any hit that was about to land
+    recordDamageDealt(1);
     this.health--;
     if (this.health <= 0) { recordKO(); this._die(); return true; }
     this.state = STATE.HIT;

@@ -1,8 +1,13 @@
 // ============================================================
 // endings.js — the three Level 3 endings
-// Each shows a fade-to-black overlay with text, then offers
-// a restart back to Level 1.
+// Each shows a fade-to-black overlay with text, then the campaign
+// summary, then offers a restart back to Level 1.
 // ============================================================
+
+import {
+  runStats, computeRank, attackAccuracy, CAMPAIGN_PAR_SECONDS,
+} from '../utils/stats.js';
+import { buildCampaignSummary } from '../ui/DebriefScreen.js';
 
 // ── Voice helper for endings ──
 function endingVoice(key) {
@@ -83,6 +88,25 @@ function showRestartButton() {
   return new Promise((resolve) => {
     const overlay = document.getElementById('endOverlay');
     if (!overlay) return resolve();
+
+    // The last ending line has faded out but still holds its space in the
+    // flex column — clear it so the summary and the button centre cleanly.
+    overlay.innerHTML = '';
+
+    // The whole run, tallied: Level 3 has no debrief of its own, so the
+    // campaign total is the closing card of the game.
+    overlay.appendChild(buildCampaignSummary({
+      stats: runStats,
+      timeSec: runStats.playSeconds,
+      levelsCleared: 3,
+      rank: computeRank({
+        deaths: runStats.deaths,
+        damageTaken: runStats.damageTaken,
+        accuracy: attackAccuracy(runStats),
+        timeSec: runStats.playSeconds,
+        parSec: CAMPAIGN_PAR_SECONDS,
+      }),
+    }));
 
     const btn = document.createElement('button');
     btn.innerText = 'RESTART';

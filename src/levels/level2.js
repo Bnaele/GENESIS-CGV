@@ -7203,10 +7203,10 @@ createCityBackground() {
             const pd = Math.hypot(pdx, pdz);
             if (pd < 3.0) {
                 this._portalEntered = true;
+                // main.js shows the debrief and builds Level 3 when the
+                // player continues — switching here would tear the level
+                // down before the result screen was ever read.
                 if (typeof this.onLevelComplete === 'function') this.onLevelComplete();
-                if (typeof window.__switchLevel === 'function') {
-                    window.__switchLevel(3);
-                }
             }
         }
 
