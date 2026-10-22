@@ -45,19 +45,27 @@ const GUARDIAN_CLIP_FILES = {
   die:     'dying.fbx',
 };
 
-// Combat kits — the red blade guardian borrows the Architect's
-// great-sword set; the blue fist guardian borrows the Enforcer's
-// strike set. Clips are authored for the Dreyar/Jones rigs, so each
-// is remapped onto the grunt skeleton at load (remapClip below —
-// same technique architect.js and enforcer.js use).
-const GUARDIAN_ATTACK_KITS = {
+// Combat kits — clips are authored for other Mixamo rigs (blade's
+// great-sword character, the Enforcer's boxer), so each is remapped
+// onto the grunt skeleton at load (remapClip below — same technique
+// architect.js and enforcer.js use).
+//
+// A kit may override any action key the guardian plays, not just
+// attacks: blade carries its own stance, run, flinch and death, so it
+// no longer reads as a tinted grunt. Keys the kit omits fall through
+// to the shared GUARDIAN_CLIP_FILES entries, so a missing clip can
+// never leave the guardian in bind pose.
+const GUARDIAN_KITS = {
   blade: {
     base: './assets/models/enemy/',
     files: {
-      attack1: 'architect_stable_sword_inward_slash.fbx',
-      attack2: 'architect_stable_sword_outward_slash.fbx',
-      attack3: 'architect_hurricane_kick.fbx',
-      attack4: 'architect_great_sword_attack.fbx',
+      idle:    'blade_great_sword_idle.fbx',
+      move:    'blade_great_sword_run.fbx',
+      hit:     'blade_hit_to_body.fbx',
+      die:     'blade_sword_death.fbx',
+      attack1: 'blade_great_sword_casting.fbx',
+      attack2: 'blade_great_sword_kick.fbx',
+      attack3: 'blade_great_sword_slash.fbx',
     },
   },
   fist: {
@@ -163,23 +171,25 @@ function getGuardianAssets() {
       })
     );
 
-    const attackKits = {};
+    const kits = {};
     await Promise.all(
-      Object.entries(GUARDIAN_ATTACK_KITS).map(async ([kind, kit]) => {
+      Object.entries(GUARDIAN_KITS).map(async ([kind, kit]) => {
         const kitClips = {};
         await Promise.all(
           Object.entries(kit.files).map(async ([key, file]) => {
             const fbx = await loadFbx(loader, kit.base + file);
             if (fbx?.animations?.[0]) {
-              kitClips[key] = stripRootMotion(fbx.animations[0], true);
+              // Only strikes are flattened. A run keeps its vertical
+              // bob; flattening it turns the gait into glide.
+              kitClips[key] = stripRootMotion(fbx.animations[0], /^attack/.test(key));
             }
           })
         );
-        attackKits[kind] = kitClips;
+        kits[kind] = kitClips;
       })
     );
 
-    return { baseFbx, clips, attackKits };
+    return { baseFbx, clips, kits };
   })();
   // Debug hook — raw kit track names for retarget diagnosis.
   _guardianAssetsPromise.then((a) => { window.__guardianKits = a; });
@@ -209,21 +219,12 @@ function makeBlade() {
   return group;
 }
 
-function makeGauntlets() {
+function makeGauntlet(mat, withLight) {
   const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x00ddff, emissive: 0x00ddff,
-    emissiveIntensity: 3, metalness: 0.4, roughness: 0.25,
-  });
-  const left = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), mat);
-  left.position.set(-0.5, 1.0, 0.2);
-  group.add(left);
-  const right = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), mat);
-  right.position.set(0.5, 1.0, 0.2);
-  group.add(right);
-  const light = new THREE.PointLight(0x00ddff, 4, 6, 2);
-  light.position.set(0, 1.0, 0.2);
-  group.add(light);
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), mat);
+  fist.position.set(0, 0.06, 0.1);
+  group.add(fist);
+  if (withLight) group.add(new THREE.PointLight(0x00ddff, 4, 6, 2));
   return group;
 }
 
@@ -322,12 +323,14 @@ export class Guardian extends Enemy {
       this.actions[key] = this.mixer.clipAction(clip);
     }
 
-    // Kind-specific combat kit — remapped onto THIS clone so the
-    // Architect/Enforcer-authored clips bind to the grunt skeleton.
+    // Kind-specific kit — remapped onto THIS clone so clips authored
+    // for the great-sword and boxer rigs bind to the grunt skeleton.
     // A clip that binds zero tracks is SKIPPED, leaving the shared
-    // grunt fallback strikes active instead of a bind-pose T-pose.
+    // grunt fallback active instead of a bind-pose T-pose.
+    // Only attackN keys enter the rotation _startSwing picks from;
+    // idle/run overrides must never be treated as strikes.
     this._attackNames = [];
-    const kit = assets.attackKits[this.kind] || {};
+    const kit = assets.kits[this.kind] || {};
     for (const [key, clip] of Object.entries(kit)) {
       if (!clip) continue;
       const mapped = remapClip(clip, fbx, `${this.kind}/${key}`);
@@ -336,20 +339,58 @@ export class Guardian extends Enemy {
         continue;
       }
       this.actions[key] = this.mixer.clipAction(mapped);
-      this._attackNames.push(key);
+      if (/^attack/.test(key)) this._attackNames.push(key);
     }
     if (!this._attackNames.length) this._attackNames = ['attack1', 'attack2'];
+    // Kit clips land in fetch-completion order, which would shuffle the
+    // rotation differently on every load.
+    this._attackNames.sort();
 
     if (this.state === STATE.IDLE) this._playAction('idle');
     this._attachWeapon();
   }
 
+  _findHandBone(side) {
+    let found = null;
+    this.fbx.traverse((o) => {
+      if (found || !o.isBone) return;
+      if (new RegExp(`${side}Hand$`).test(o.name)) found = o;
+    });
+    return found;
+  }
+
+  // Weapons belong on the hand BONES. They used to be added to this.group,
+  // which parks them in mid-air at a fixed offset while the animation
+  // swings an empty fist straight through them. Bones sit inside the FBX's
+  // 0.013 shrink, so each prop is scaled by its inverse to keep the size
+  // it was authored at.
   _attachWeapon() {
-    if (this.weaponMesh) return;
-    const weapon = this.kind === 'blade' ? makeBlade() : makeGauntlets();
-    weapon.position.set(0.6, 1.1, 0.3);
-    this.group.add(weapon);
-    this.weaponMesh = weapon;
+    if (this._weaponParts) return;
+    const inv = 1 / (0.013 * (GUARDIAN_STATS[this.kind]?.scale ?? 1));
+
+    const gauntletMat = new THREE.MeshStandardMaterial({
+      color: 0x00ddff, emissive: 0x00ddff,
+      emissiveIntensity: 3, metalness: 0.4, roughness: 0.25,
+    });
+    const wanted = this.kind === 'blade'
+      ? [{ obj: makeBlade(), hand: 'Right', tilt: Math.PI / 2 }]
+      : [
+          { obj: makeGauntlet(gauntletMat, true),  hand: 'Right' },
+          { obj: makeGauntlet(gauntletMat, false), hand: 'Left'  },
+        ];
+
+    this._weaponParts = [];
+    for (const w of wanted) {
+      const bone = this._findHandBone(w.hand);
+      if (!bone) {
+        console.warn(`[Guardian] ${this.kind}: no ${w.hand}Hand bone — weapon dropped`);
+        continue;
+      }
+      w.obj.scale.setScalar(inv);
+      if (w.tilt) w.obj.rotation.x = w.tilt;
+      bone.add(w.obj);
+      this._weaponParts.push(w.obj);
+    }
   }
 
   // ── Smooth transitions — loops don't reset, one-shots do ──
@@ -393,37 +434,65 @@ export class Guardian extends Enemy {
     }, delay);
   }
 
+  // Strike length comes from the clip, not a fixed per-kind number.
+  // One-shots use clampWhenFinished, so a window shorter than the clip
+  // freezes the guardian mid-swing and crossfades out of it — the old
+  // 1.2 s window did that to Blade's 4.8 s great-sword cast. Speed is
+  // capped so a heavy stays readable rather than becoming a blur.
+  _attackWindow(name) {
+    const clip = this.actions[name] && this.actions[name].getClip();
+    const dur = clip ? clip.duration : 0;
+    const base = this.guardianWindup + this.guardianTail + 0.35;
+    if (!dur || dur <= base) {
+      return { windup: this.guardianWindup, tail: this.guardianTail, speed: 1 };
+    }
+    const speed = Math.min(dur / base, 1.5);
+    const commit = dur / speed;
+    return {
+      windup: Math.max(this.guardianWindup, commit * 0.35),
+      tail: Math.max(this.guardianTail, commit * 0.65),
+      speed,
+    };
+  }
+
   _startSwing() {
     // Rotate through the guardian's combat kit so the fight never
-    // loops one move (Architect slashes for blade, Enforcer jabs
-    // and kicks for fist).
+    // loops one move (Enforcer jabs and kicks for fist).
     const names = (this._attackNames && this._attackNames.length)
       ? this._attackNames : ['attack1', 'attack2'];
     const idx  = names.indexOf(this._lastAttack);
     const pick = names[(idx + 1) % names.length];
     this._lastAttack = pick;
+
+    const win = this._attackWindow(pick);
+    if (this.actions[pick]) this.actions[pick].timeScale = win.speed;
     this._playAction(pick, false);
 
-    this.swingTimer   = this.guardianWindup;
+    this.swingTimer   = win.windup;
     this.swingLanded  = false;
-    this.recoverTimer = this.guardianWindup + this.guardianTail + 0.35
+    this.recoverTimer = win.windup + win.tail + 0.35
                       + Math.random() * 0.35;
 
-    if (this.weaponMesh) {
-      this.weaponMesh.traverse((o) => {
-        if (o.isMesh && o.material && o.material.emissiveIntensity !== undefined)
+    // Swing flare. Each prop records its own authored value instead of a
+    // hard-coded reset, which used to leave the gauntlets permanently
+    // brighter than they were built (they author at 3, the reset said 3.5).
+    const flare = [];
+    for (const part of this._weaponParts || []) {
+      part.traverse((o) => {
+        if (o.isMesh && o.material?.emissiveIntensity !== undefined) {
+          flare.push([o.material, 'emissiveIntensity', o.material.emissiveIntensity]);
           o.material.emissiveIntensity = 6;
-        if (o.isLight) o.intensity = 12;
+        }
+        if (o.isLight) {
+          flare.push([o, 'intensity', o.intensity]);
+          o.intensity = 12;
+        }
       });
-      setTimeout(() => {
-        if (this._disposed || !this.weaponMesh) return;
-        this.weaponMesh.traverse((o) => {
-          if (o.isMesh && o.material && o.material.emissiveIntensity !== undefined)
-            o.material.emissiveIntensity = 3.5;
-          if (o.isLight) o.intensity = 4;
-        });
-      }, this.guardianWindup * 1000);
     }
+    setTimeout(() => {
+      if (this._disposed) return;
+      for (const [obj, prop, value] of flare) obj[prop] = value;
+    }, win.windup * 1000);
   }
 
   takeDamage(amount = 1) {
