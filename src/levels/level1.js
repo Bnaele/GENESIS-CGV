@@ -132,7 +132,7 @@ void main(){
 }`;
 
 export class StreetLevel {
-  constructor(sceneOrRenderer = null, rendererMaybe = null) {
+  constructor(sceneOrRenderer = null, rendererMaybe = null, opts = {}) {
     let outerScene = null;
     let renderer = null;
     if (sceneOrRenderer && sceneOrRenderer.isScene) {
@@ -265,6 +265,32 @@ export class StreetLevel {
       this._introPlayed = true;
       this._playIntroMonologue();
     }, 800);
+
+    // ── Checkpoint rebuild — construct in the post-gate state ──
+    // Undefined = fresh play (intro plays). 0 = retry from the level
+    // start: the monologue is already seen, waves begin immediately.
+    // 1 = retry from the Warden gate: waves already wiped, the
+    // Commander is called shortly after construction.
+    this._checkpoint = opts.checkpoint;
+    if (this._checkpoint >= 1) {
+      this._introPlayed = true;
+      this._introDone = true;
+      clearTimeout(this._introTimer);
+      this._wavesEnabled = true;
+      this.waveIndex = this.waves.length;
+      this._commanderCalled = true;
+      for (const b of this._shipBarks) b.fired = true;
+      setTimeout(() => { if (!this._disposed) this._spawnCommander(); }, 600);
+    } else if (this._checkpoint === 0) {
+      this._introPlayed = true;
+      this._introDone = true;
+      clearTimeout(this._introTimer);
+      setTimeout(() => {
+        if (this._disposed) return;
+        this._wavesEnabled = true;
+        this._startNextWave();
+      }, 1200);
+    }
   }
 
   // =========================================================
@@ -497,6 +523,12 @@ export class StreetLevel {
         this._onCommanderDeath();
       }
     }, (x, z) => this._h(x, z));
+
+    // Checkpoint gate — dying from here on retries at the Warden fight,
+    // not back at the village spawn. Not re-reported on a rebuild.
+    if (!this._checkpoint && typeof this.onCheckpoint === 'function') {
+      this.onCheckpoint(1, 'THE WARDEN');
+    }
   }
 
   async _onCommanderDeath() {

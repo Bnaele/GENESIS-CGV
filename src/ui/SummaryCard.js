@@ -30,12 +30,17 @@ function _ensure() {
   return _el;
 }
 
-export function showSummaryCard({ title, timeSec, kos, health, maxHealth }) {
+export function showSummaryCard({ title, timeSec, kos, health, maxHealth, deaths = 0 }) {
   const el = _ensure();
   const mm = Math.floor(timeSec / 60);
   const ss = Math.floor(timeSec % 60).toString().padStart(2, '0');
   const hpPct = Math.max(0, Math.round((health / maxHealth) * 100));
   const hpColor = hpPct > 50 ? '#00ff88' : hpPct > 25 ? '#ffcc00' : '#ff5555';
+
+  const rank = deaths === 0 ? ['S', '#00ffff', 'FLAWLESS SYNCHRONIZATION']
+    : deaths <= 2 ? ['A', '#00ff88', 'STABLE SYNCHRONIZATION']
+    : deaths <= 5 ? ['B', '#ffcc00', 'STRAINED SYNCHRONIZATION']
+    : ['C', '#ff5555', 'FRACTURED SYNCHRONIZATION'];
 
   el.innerHTML = `
     <div style="font-size:0.72rem;letter-spacing:5px;color:#88dddd;margin-bottom:6px;">LEVEL COMPLETE</div>
@@ -44,6 +49,10 @@ export function showSummaryCard({ title, timeSec, kos, health, maxHealth }) {
       <span>TIME ${mm}:${ss}</span>
       <span>KOs ${kos}</span>
       <span style="color:${hpColor};">HP ${hpPct}%</span>
+      <span>DEATHS ${deaths}</span>
+    </div>
+    <div style="margin-top:10px;font-size:0.95rem;letter-spacing:3px;color:${rank[1]};text-shadow:0 0 14px ${rank[1]};">
+      RANK ${rank[0]} — ${rank[2]}
     </div>`;
 
   clearTimeout(_hideTimer);

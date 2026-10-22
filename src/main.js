@@ -21,7 +21,8 @@ import { createHUD, updateHUD } from './ui/HUD.js';   // ← ADDED updateHUD
 import { createObjectivesPanel, updateObjectives } from './ui/ObjectivesPanel.js';
 import { createDamageFlash, flashDamageFrom } from './ui/DamageFlash.js';
 import { showSummaryCard, hideSummaryCard } from './ui/SummaryCard.js';
-import { resetStats, gameStats } from './utils/stats.js';
+import { showFailScreen, hideFailScreen, isFailScreenVisible } from './ui/FailScreen.js';
+import { resetStats, gameStats, recordDeath } from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 
@@ -92,6 +93,8 @@ const playerHealth = new PlayerHealth({
   onDeath: () => {
     trueForm.abort();   // dying ends the merge instantly
     _lastDeathPos = player.pos.clone();
+    recordDeath();
+    showDeathScreen();
   },
   onRespawn: (spawnPos) => {
     let target = null;
@@ -402,6 +405,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (!gameStarted.value || !level) return;
     if (cinematicCamera.active) return;
+    if (isFailScreenVisible()) return;   // dead — the fail screen owns Esc-less input
     if (document.getElementById('endOverlay')) return;
     if (tipPause) return;   // the True Form tip is modal — no pause menu on top
     if (pauseMenu.visible) {
@@ -412,7 +416,7 @@ addEventListener('keydown', e => {
     return;
   }
 
-  if (pauseMenu.visible || tipPause) return;   // gameplay input frozen while paused
+  if (pauseMenu.visible || tipPause || isFailScreenVisible()) return;   // gameplay input frozen while paused
 
   keys[e.code] = true;
   // Arrows drive the same movement keys as WASD
@@ -610,6 +614,7 @@ document.addEventListener('pointerlockchange', () => {
   if (_wasLocked && gameStarted.value && level &&
       !(window.__dialogue && window.__dialogue.active) &&
       !cinematicCamera.active &&
+      !isFailScreenVisible() &&
       !document.getElementById('endOverlay')) {
     pauseMenu.show();
   }
@@ -740,7 +745,77 @@ function disposeCurrentLevel() {
   } catch (e) { console.warn('renderer cache flush failed:', e); }
 }
 
-function switchLevel(n) {
+// ---------- checkpoints ----------
+// The last gate the player reached in the current level. Index 0 is the
+// level start (a retry from it skips the opening story beats); higher
+// indices are reported by the levels themselves through level.onCheckpoint
+// at boss wakes, guardian wakes and similar gates. Retrying rebuilds the
+// level with { checkpoint: n } so it constructs in the post-gate state.
+let checkpoint = null;
+
+function showCheckpointToast(label) {
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed; top:64px; left:50%; transform:translateX(-50%);
+    padding:8px 26px; border:1px solid rgba(0,255,255,0.55); border-radius:8px;
+    background:rgba(2,10,20,0.85); color:#7fe8ff;
+    font-family:'Courier New', monospace; font-size:12px; letter-spacing:4px;
+    z-index:90; pointer-events:none; opacity:1; transition:opacity 0.6s ease;
+  `;
+  t.innerText = `CHECKPOINT — ${label}`;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; }, 2400);
+  setTimeout(() => t.remove(), 3200);
+}
+
+function setCheckpoint(index, label) {
+  checkpoint = { index, label, pos: player.pos.clone(), yaw: player.yaw };
+  showCheckpointToast(label);
+}
+
+// ── Death — MISSION FAILED screen with checkpoint retry ──
+function showDeathScreen() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  audioManager.pauseMusic();
+  if (cinematicCamera.active) cinematicCamera.stop();
+
+  // Silence any voiced line in flight and hide its captions so the
+  // dialogue isn't talking over Axiom on the fail screen.
+  if (window.__dialogue) {
+    try {
+      for (const k of Object.keys(audioManager.sounds)) {
+        if (/^l[123]_/.test(k)) audioManager.sounds[k].stop();
+      }
+      window.__dialogue.hide();
+    } catch (e) { /* never block the fail screen */ }
+  }
+
+  const cp = checkpoint;
+  showFailScreen({
+    checkpointLabel: cp ? cp.label : 'LEVEL START',
+    deaths: gameStats.deaths,
+    onRetry: () => retryFromCheckpoint(),
+    onRestart: () => {
+      switchLevel(current);
+      requestGamePointerLock();
+    },
+    onQuit: () => restartToMenu(),
+  });
+}
+
+function retryFromCheckpoint() {
+  const cp = checkpoint;
+  switchLevel(current, { checkpoint: cp ? cp.index : 0 });
+  if (cp) {
+    player.pos.copy(cp.pos);
+    player.vel.set(0, 0, 0);
+    player.yaw = cp.yaw;
+    player.cameraYaw = cp.yaw;
+  }
+  requestGamePointerLock();
+}
+
+function switchLevel(n, opts = {}) {
   disposeCurrentLevel();
   // A summary card may still be up from the portal that triggered this
   // switch — let it linger through the transition, then clear it.
@@ -752,9 +827,13 @@ function switchLevel(n) {
   _summaryShown = false;
   resetStats();
   trueForm.reset();   // never carry the merge across a level switch
+  dash.cooldown = 0;
+  dash.activeTimer = 0;
+  attackCooldown.f = 0; attackCooldown.g = 0; attackCooldown.h = 0;
+  attackLock = false;
 
   try {
-    level = new LEVELS[n](scene, renderer);
+    level = new LEVELS[n](scene, renderer, opts);
 
     if (n === 3 && level instanceof ArchitectLevel) {
       window.__level3 = level;   // debug hook — fight/asset testing
@@ -781,7 +860,7 @@ function switchLevel(n) {
     }
   } catch (e) {
     console.warn(`Level ${n} primary constructor failed:`, e);
-    try { level = new LEVELS[n](scene); } catch (e2) { level = new LEVELS[n](); }
+    try { level = new LEVELS[n](scene, opts); } catch (e2) { level = new LEVELS[n](); }
   }
 
   // Wire player damage callback
@@ -790,6 +869,10 @@ function switchLevel(n) {
       playerHealth.takeDamage(dmg);
     };
     level.playerHealth = playerHealth;
+
+    // Levels report story/combat gates here; the saved position is
+    // wherever Sorini stood when the gate fired.
+    level.onCheckpoint = (index, label) => setCheckpoint(index, label);
 
     // Levels call this the moment the exit portal is entered — the
     // summary card pops then, not at boss death (the post-fight
@@ -802,6 +885,7 @@ function switchLevel(n) {
         title: `LEVEL ${current} CLEAR`,
         timeSec: (performance.now() - _levelStartTime) / 1000,
         kos: gameStats.kos,
+        deaths: gameStats.deaths,
         health: playerHealth.hp,
         maxHealth: playerHealth.maxHp,
       });
@@ -864,6 +948,10 @@ function switchLevel(n) {
   player.yaw   = (typeof level.spawnYaw === 'number') ? level.spawnYaw : Math.PI;
   player.pitch = 0;
     player.cameraYaw = player.yaw;   // start camera behind her facing forward
+
+  // Fresh level (or a checkpoint retry) — the saved gate resets to the
+  // start; retryFromCheckpoint overwrites the position afterwards.
+  checkpoint = { index: 0, label: level.name, pos: level.spawn.clone(), yaw: player.yaw };
 
   // Axiom Dash unlocks from Level 2 onward
 dash.enabled = (n >= 2);
@@ -1078,8 +1166,8 @@ function tick() {
 
   // Freeze the whole world while the pause menu is open — the last
   // presented frame stays on screen behind the overlay. The True Form
-  // tip freezes through the same path.
-  if (pauseMenu.visible || tipPause) return;
+  // tip and the MISSION FAILED screen freeze through the same path.
+  if (pauseMenu.visible || tipPause || isFailScreenVisible()) return;
 
   playerHealth.update(dt);
 
@@ -1484,6 +1572,7 @@ function restartToMenu() {
   if (document.pointerLockElement) document.exitPointerLock();
   pauseMenu.hide();
   hideSummaryCard();
+  hideFailScreen();
 
   disposeCurrentLevel();
   level = null;

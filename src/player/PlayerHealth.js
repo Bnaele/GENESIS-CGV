@@ -139,13 +139,9 @@ export class PlayerHealth {
 
     update(dt) {
         if (this._hurtCooldown > 0) this._hurtCooldown -= dt;
-
-        if (this.dead) {
-            this.respawnTimer -= dt;
-            if (this.respawnTimer <= 0) {
-                this.respawn(null);
-            }
-        }
+        // Death no longer auto-respawns here — main.js shows the
+        // MISSION FAILED screen and rebuilds the level from the last
+        // checkpoint instead.
     }
 
     get isInvulnerable() {

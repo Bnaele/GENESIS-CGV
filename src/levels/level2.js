@@ -10,7 +10,7 @@ import { neonEnvTexture, normalMapFromImageURL } from '../utils/utils.js';
 
 export class AlienLevel {
 
-    constructor(sceneOrRenderer = null, rendererMaybe = null) {
+    constructor(sceneOrRenderer = null, rendererMaybe = null, opts = {}) {
 
         // =========================================================
         // SCENE — supports both `new AlienLevel(scene, renderer)` (main.js)
@@ -570,6 +570,17 @@ this._buildHazardTiles();
         this._minionsUnleashed = false;
         this._minionUnleashTimers = [];
         this._tipTimers = [];
+
+        // ── Checkpoint rebuild — the confrontation dialogue is already
+        // seen (gate 0) or the fight is already underway (gate 1); both
+        // construct straight into the post-dialogue state: the Enforcer
+        // active, her minions streaming, boss bar up.
+        this._checkpoint = opts.checkpoint;
+        if (this._checkpoint !== undefined) {
+            this._introDialoguePlayed = true;
+            this._introStarted = true;
+            setTimeout(() => { if (!this._disposed) this.triggerCombat(); }, 900);
+        }
     }
 
         // =========================================================
@@ -815,7 +826,7 @@ this._buildHazardTiles();
     // START INTRO — call this from main.js after switchLevel(2)
     // =========================================================
     startIntroSequence() {
-        if (this._introStarted) return;
+        if (this._introStarted) return;   // also latched on checkpoint rebuilds
         this._introStarted = true;
         this._spawnArrivalPortal();
     }
@@ -842,6 +853,11 @@ this._buildHazardTiles();
         // far-end portal, one after the other, spaced along the street.
         this._unleashMinions();
 
+        // Checkpoint gate — deaths from here on retry at the Enforcer
+        // fight instead of back at the arrival portal.
+        if (!this._checkpoint && typeof this.onCheckpoint === 'function') {
+            this.onCheckpoint(1, 'THE ENFORCER');
+        }
     }
 
     // Objectives shown in the HUD tracker.

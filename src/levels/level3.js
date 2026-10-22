@@ -44,7 +44,7 @@ function moonSteelNormal(repeatX, repeatY) {
 
 export class ArchitectLevel {
 
-  constructor(sceneOrRenderer = null, rendererMaybe = null) {
+  constructor(sceneOrRenderer = null, rendererMaybe = null, opts = {}) {
 
     // ── SCENE ────────────────────────────────────────────
     let outerScene = null;
@@ -92,6 +92,18 @@ export class ArchitectLevel {
     // from that moment for the rest of the level.
     this._mergeDialogueFired = false;
     this.axiomFormGranted = false;
+
+    // ── Checkpoint rebuild — construct in the post-gate state ──
+    // Undefined = fresh play. 1 = retry from the Guardians gate: the
+    // merge already happened, so the True Form is hers and the offer
+    // dialogue must not replay. 2 = retry from the Architect gate: the
+    // Guardians already fell, only the duel remains.
+    this._checkpoint = opts.checkpoint;
+    if (this._checkpoint >= 1) {
+      this._mergeDialogueFired = true;
+      this.axiomFormGranted = true;
+    }
+    if (this._checkpoint >= 2) this.guardiansDefeated = true;
 
     // Architect boss fight —
     // 'awaiting' → 'rising' → 'dialogue' → 'fighting' → 'victory'
@@ -1300,6 +1312,10 @@ export class ArchitectLevel {
     // two, a max of 1 left one permanently idling out of the fight)
     this.guardianGate = { current: 0, max: 2 };
 
+    // Checkpoint 2 rebuild — the Guardians already fell at this gate;
+    // only the Architect remains between Sorini and the ending.
+    if (this._checkpoint >= 2) return;
+
     // Blade — left of the chamber
     const blade = new Guardian(
       this.level,
@@ -1815,6 +1831,12 @@ export class ArchitectLevel {
 
       if (g.state === STATE.IDLE && distToChamber < 25 && dy < 15) {
         g.alert();
+        // Checkpoint gate — the hall fight. Not re-reported on rebuilds.
+        if (!this._checkpoint && !this._guardiansCheckpointed &&
+            typeof this.onCheckpoint === 'function') {
+          this._guardiansCheckpointed = true;
+          this.onCheckpoint(1, 'THE GUARDIANS');
+        }
       }
 
       // Update the guardian (uses parent Enemy.update)
@@ -1843,6 +1865,11 @@ export class ArchitectLevel {
       const bothDead = this.guardians.every((g) => g.state === STATE.DEAD || g.dead);
       if (bothDead) {
         this.guardiansDefeated = true;
+        // Checkpoint gate — the duel. From here a death retries with
+        // the Guardians already down and the True Form unlocked.
+        if (typeof this.onCheckpoint === 'function') {
+          this.onCheckpoint(2, 'THE ARCHITECT');
+        }
       }
     }
 
