@@ -124,6 +124,12 @@ export class ArchitectLevel {
     this.createSpaceship();      // keep the landing ship as the arrival point
     this.createFlag();
     this.createLandingPath();
+    this.createGuideArrows();
+
+    // Face the monument from the flag spawn — the ship's open bay then
+    // sits to her left, which is where the guide arrows lead.
+    const sp = this.getSpawn();
+    this.spawnYaw = Math.atan2(-sp.x, -sp.z);
 
     this.createWreckageField();
     this.createDistantFleet();
@@ -441,6 +447,11 @@ export class ArchitectLevel {
     // How high the ship hull sits above the moon surface.
     // Landing-gear legs bridge this gap; maintenance stands sit underneath.
     const SHIP_LIFT = 5.5;
+
+    // The corridor GLB's mouth — where the guide arrows aim. Must stay in
+    // step with the corridor placement below (local z 45 + lift*0.4 inside
+    // a group sitting at z 5).
+    this.shipEntrance = new THREE.Vector3(0, 0, 50 + SHIP_LIFT * 0.4);
 
     const fbxLoader = new FBXLoader();
     fbxLoader.load('./assets/models/Spaceship.fbx', (fbx) => {
@@ -798,6 +809,52 @@ export class ArchitectLevel {
       pathGroup.add(slab);
     }
     this.level.add(pathGroup);
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // GUIDE ARROWS — a pulsing chevron trail from the flag spawn to the
+  // ship's open bay. The moon is a featureless white plain, so without
+  // a route marker the entrance is easy to walk past.
+  // ─────────────────────────────────────────────────────────
+  createGuideArrows() {
+    const shape = new THREE.Shape();
+    shape.moveTo(-1.2, -0.9);
+    shape.lineTo(0, 1.0);
+    shape.lineTo(1.2, -0.9);
+    shape.lineTo(0, -0.25);
+    shape.closePath();
+    const geo = new THREE.ShapeGeometry(shape);
+    geo.rotateX(Math.PI / 2);   // lay flat with the tip along local +Z
+
+    // Normal blending, not additive — additive cyan vanishes against the
+    // near-white lunar surface.
+    this.guideMat = new THREE.MeshBasicMaterial({
+      color: 0x00c8e0, transparent: true, opacity: 0.9,
+      depthWrite: false, side: THREE.DoubleSide,
+    });
+
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(95, 0, 73),
+      new THREE.Vector3(62, 0, 71),
+      new THREE.Vector3(34, 0, 66),
+      new THREE.Vector3(12, 0, 58),
+      this.shipEntrance.clone(),
+    ]);
+
+    const group = new THREE.Group();
+    const count = Math.floor(curve.getLength() / 5);
+    for (let i = 0; i <= count; i++) {
+      const t = i / count;
+      const p = curve.getPointAt(t);
+      const tan = curve.getTangentAt(t);
+      const arrow = new THREE.Mesh(geo, this.guideMat);
+      arrow.position.set(p.x, this.getSurfaceHeight(p.x, p.z) + 0.22, p.z);
+      arrow.rotation.y = Math.atan2(tan.x, tan.z);
+      group.add(arrow);
+    }
+    this.guideArrows = group;
+    this._guideFade = 1;
+    this.level.add(group);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -1764,9 +1821,12 @@ export class ArchitectLevel {
   // SPAWN
   // ─────────────────────────────────────────────────────────
   getSpawn() {
-    const sx = 20.1, sz = 57.5;
+    // Beside the GENESIS flag at the far end of the landing path, where
+    // the level 2 portal drops her. The ship's open bay reads on her
+    // left from here, the monument straight ahead.
+    const sx = 95, sz = 73;
     const sy = this.getSurfaceHeight(sx, sz);
-    return new THREE.Vector3(sx, sy + 0.2, sz + 2);
+    return new THREE.Vector3(sx, sy + 0.2, sz);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -1802,6 +1862,24 @@ export class ArchitectLevel {
       for (const ship of this.fleetShips) {
         ship.mesh.position.x += ship.drift * dt;
         if (Math.abs(ship.mesh.position.x - ship.baseX) > 15) ship.drift *= -1;
+      }
+    }
+
+    // Guide arrows — a pulse marching down the trail toward the ship's
+    // open bay, faded out once she is standing at it.
+    if (this.guideArrows) {
+      const e = this.shipEntrance;
+      const near = Math.hypot(player.pos.x - e.x, player.pos.z - e.z) < 16;
+      this._guideFade += ((near ? 0 : 1) - this._guideFade) * Math.min(1, dt * 2);
+      this.guideArrows.visible = this._guideFade > 0.02;
+      if (this.guideArrows.visible) {
+        this.guideMat.opacity = 0.9 * this._guideFade;
+        const kids = this.guideArrows.children;
+        for (let i = 0; i < kids.length; i++) {
+          const w = Math.max(0, Math.sin(this._time * 3 - i * 0.55));
+          const s = 1 + 0.3 * w;
+          kids[i].scale.set(s, 1, s);
+        }
       }
     }
 
