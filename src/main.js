@@ -1284,39 +1284,60 @@ function showCreditsOverlay() {
   `;
     creditsDiv.innerHTML = `
     <h1 style="color: #00ffff; font-size: 36px; margin-bottom: 30px;">CREDITS</h1>
-    <div style="text-align: left; font-size: 16px; line-height: 2; color: #aaa; max-width: 600px;">
+    <div style="text-align: left; font-size: 15px; line-height: 1.7; color: #aaa; max-width: 720px;">
       <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 10px;">LIBRARIES</h2>
-      <p>● Three.js (MIT) - <a href="https://threejs.org" style="color: #00ffff;">threejs.org</a></p>
-      <p>● Howler.js (MIT) - <a href="https://howlerjs.com" style="color: #00ffff;">howlerjs.com</a></p>
-      <p>● Vite (MIT) - <a href="https://vitejs.dev" style="color: #00ffff;">vitejs.dev</a></p>
+      <p>● Three.js r186 (MIT) — renderer, animation, FBX/glTF loaders - <a href="https://threejs.org" style="color: #00ffff;">threejs.org</a></p>
+      <p>● Howler.js 2.2 (MIT) — audio playback - <a href="https://howlerjs.com" style="color: #00ffff;">howlerjs.com</a></p>
+      <p>● Vite 8 (MIT) — build tool - <a href="https://vitejs.dev" style="color: #00ffff;">vitejs.dev</a></p>
 
-      <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">MUSIC & SOUND EFFECTS (OpenGameArt)</h2>
-      <p>● Sci-Fi Drone by jdagenet (CC-BY 4.0) - <a href="https://opengameart.org/content/sci-fi-drone" style="color: #00ffff;">Ship hum</a></p>
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">MUSIC</h2>
+      <p>● Level 1 — chiptune loop: <em>source to confirm</em></p>
+      <p>● Level 2 — orchestral loop: <em>source to confirm</em></p>
+      <p>● Level 3 — electronic loop (OpenGameArt "Sci-Fi Drone" by jdagenet, CC-BY 4.0) - <a href="https://opengameart.org/content/sci-fi-drone" style="color: #00ffff;">opengameart.org</a></p>
+
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">SOUND EFFECTS (OpenGameArt)</h2>
       <p>● Punch SFX by DavidW (CC-BY 3.0) - <a href="https://opengameart.org/content/punch-sfx" style="color: #00ffff;">Link</a></p>
+      <p>● 37 hits/punches by independent.nu (CC-BY 3.0) - <a href="https://opengameart.org/content/37-hitspunches" style="color: #00ffff;">Link</a></p>
       <p>● Spell Sounds Starter Pack by p0ss (CC-BY-SA 3.0) - <a href="https://opengameart.org/content/spell-sounds-starter-pack" style="color: #00ffff;">Link</a></p>
       <p>● A Kinda Cool Sound Effect by Spring Spring (CC0) - <a href="https://opengameart.org/content/a-kinda-cool-sound-effect" style="color: #00ffff;">Link</a></p>
       <p>● Tactical Weapons and Tactics Sound Pack by XCVG (CC-BY 3.0) - <a href="https://opengameart.org/content/tactical-weapons-and-tactics-sound-pack" style="color: #00ffff;">Link</a></p>
-      <p>● 37 hits/punches by independent.nu (CC-BY 3.0) - <a href="https://opengameart.org/content/37-hitspunches" style="color: #00ffff;">Link</a></p>
+      <p style="font-size: 13px; color: #666; margin-left: 20px;">Used for punch_hit, boss_hit, boss_phase_change, enemy_death, fragment_collected and portal_activate.</p>
 
-      <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">VOICE ACTING (AI-Generated)</h2>
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">VOICE ACTING (AI-Generated)</h2>
       <p>● Sorini (Sonia) & Axiom (Brian) — <a href="https://freetts.ai" style="color: #00ffff;">FreeTTS.ai</a></p>
       <p>● The Enforcer (Darlene, Monster effect) — <a href="https://speechgen.io" style="color: #00ffff;">SpeechGen.io</a></p>
       <p>● The Architect (Pain) & Narrator (Madara Uchiha V1) — <a href="https://fish.audio" style="color: #00ffff;">Fish Audio</a></p>
-      <p style="font-size: 13px; color: #666; margin-left: 20px;">All voices are AI-generated and used under their respective free-tier terms.</p>
+      <p style="font-size: 13px; color: #666; margin-left: 20px;">42 lines across Levels 1–3. All voices are AI-generated and used under their respective free-tier terms.</p>
 
-      <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">MODELS</h2>
-      <p>● Kachujin (Sorini) — Mixamo</p>
-      <p>● X_Bot (Grunts) — Mixamo</p>
-      <p>● Dreyar (Architect) — Mixamo</p>
-      <p>● Enforcer (Jones) — Mixamo</p>
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">CHARACTER MODELS (Mixamo)</h2>
+      <p>● Kachujin — player, Sorini</p>
+      <p>● X_Bot — grunts, the Commander, and both Level 3 guardians (Blade and Fist)</p>
+      <p>● Dreyar — The Architect</p>
+      <p>● Enforcer — Level 2 boss</p>
 
-      <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">ENVIRONMENTS & PROPS</h2>
-      <p>● Space Ship Hallway (Sketchfab) — Level 3</p>
-      <p>● Sky Cruiser RS (Sketchfab) — Level 3</p>
-      <p>● Moon - Petavius Crater (Sketchfab) — Level 3</p>
-      <p>● Light (Kenney, CC0) — Level 2</p>
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">ANIMATIONS (Mixamo)</h2>
+      <p>● <em>Sorini</em> — Idle, Swagger Walk, Running, Punching, Kicking, Hook, Jump, Dying</p>
+      <p>● <em>Grunts / Commander / guardians</em> — Idle, Walk, Run, Punch, Kick, Hit, Dying, Running, Boxing, Kicking, Reaction, Dying, Sprinting Forward Roll, Being Cocky, Sitting Pose</p>
+      <p>● <em>The Architect</em> — Idle, Great Sword Run, Standing Clap, Stable Sword Inward Slash, Stable Sword Outward Slash, Hurricane Kick, Great Sword Attack, Drop Kick, Great Sword High Spin Attack, Reaction, Sword Death, Sitting Pose</p>
+      <p>● <em>Blade</em> — Great Sword Idle, Great Sword Run, Great Sword Casting, Great Sword Kick, Great Sword Slash, Hit To Body, Sword Death</p>
+      <p>● <em>Fist / Level 2 boss</em> — Idle, Walk, Run, Left Punch, Right Punch, Cross Punch, Elbow Punch, Kick, Roundhouse Kick, Head Hit, Stomach Hit, Dying</p>
+      <p style="font-size: 13px; color: #666; margin-left: 20px;">All character models and animation clips are downloaded from <a href="https://www.mixamo.com" style="color: #666;">Mixamo</a> and used under the <a href="https://www.adobe.com/legal/terms.html" style="color: #666;">Adobe/Mixamo terms</a>. Animation clips are retargeted in-engine onto each rig's skeleton.</p>
 
-      <h2 style="color: #ffffff; font-size: 20px; margin-top: 20px; margin-bottom: 10px;">TEAM MEMBERS</h2>
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">ENVIRONMENTS & PROPS</h2>
+      <p>● Space Ship Hallway — Level 3 interior corridor (Sketchfab download) - <a href="https://sketchfab.com" style="color: #00ffff;">sketchfab.com</a> · <em>author + licence to confirm</em></p>
+      <p>● Light — Level 2 prop, Kenney (CC0) - <a href="https://kenney.nl" style="color: #00ffff;">kenney.nl</a></p>
+      <p>● Spaceship — Level 3 exterior hull: <em>source to confirm</em></p>
+      <p style="font-size: 13px; color: #666; margin-left: 20px;">The Level 3 moon terrain, its environment map, all portals, particles and Level 1 village geometry are generated procedurally in code by the team.</p>
+
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">TEXTURES (Level 2)</h2>
+      <p>● Road, Brick, Ground, Poster, Burner, Skybox</p>
+      <p style="font-size: 13px; color: #666; margin-left: 20px;"><em>Source + licence to confirm.</em></p>
+
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">ORIGINAL WORK BY THE TEAM</h2>
+      <p>● All GLSL — analytic moon (craters, maria, rim lighting), Level 1 night sky, animated water, fireflies, Level 3 nebula skybox, god-ray cone, and the model dissolve effect</p>
+      <p>● Level geometry, story, dialogue, cinematics, combat AI, physics and UI</p>
+
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">TEAM MEMBERS</h2>
       <p>● Banele — UI, Audio, Deployment, Voice Direction</p>
       <p>● Busisiwe — Shaders</p>
       <p>● Pumelela — Environment, Art</p>
