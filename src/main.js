@@ -1264,6 +1264,9 @@ const loadingScreenElement = createLoadingScreen();
 uiManager.registerScreen('loading', loadingScreenElement);
 
 // Credits overlay
+// Centred by auto margins on the first and last child rather than
+// justify-content: center, which clips a taller-than-viewport list out of
+// scrolling reach.
 function showCreditsOverlay() {
   const creditsDiv = document.createElement('div');
   creditsDiv.id = 'credits-overlay';
@@ -1275,7 +1278,7 @@ function showCreditsOverlay() {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     color: white;
     font-family: 'Courier New', monospace;
     z-index: 200;
@@ -1283,7 +1286,7 @@ function showCreditsOverlay() {
     padding: 20px;
   `;
     creditsDiv.innerHTML = `
-    <h1 style="color: #00ffff; font-size: 36px; margin-bottom: 30px;">CREDITS</h1>
+    <h1 style="color: #00ffff; font-size: 36px; margin: auto auto 30px;">CREDITS</h1>
     <div style="text-align: left; font-size: 15px; line-height: 1.7; color: #aaa; max-width: 720px;">
       <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 10px;">LIBRARIES</h2>
       <p>● Three.js r186 (MIT) — renderer, animation, FBX/glTF loaders - <a href="https://threejs.org" style="color: #00ffff;">threejs.org</a></p>
@@ -1344,7 +1347,7 @@ function showCreditsOverlay() {
       <p>● Sibusiso — Player, Controls, Physics</p>
     </div>
     <button id="credits-back" style="
-      margin-top: 40px;
+      margin: 40px auto auto;
       background: #00ffff;
       border: none;
       color: #000;
@@ -1378,7 +1381,7 @@ function showControlsOverlay(fromMenu = false) {
     justify-content: center;
     color: white;
     font-family: 'Courier New', monospace;
-    z-index: 400;   // above the pause menu (300) so it also works when opened from pause
+    z-index: 400; /* above the pause menu (300) — also opened from pause */
     overflow-y: auto;
     padding: 20px;
   `;
