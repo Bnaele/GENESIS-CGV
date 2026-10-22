@@ -29,6 +29,7 @@ export class Commander {
     this.ATTACK_COOLDOWN = 1.8;
     this.CHARGE_COOLDOWN = 6.0;
     this.ROAR_COOLDOWN = 12.0;
+    this.ROAR_RANGE = 6.0;
 
     // ── State ──
     this.alive = true;
@@ -248,6 +249,7 @@ export class Commander {
     this.chargeTimer = this.CHARGE_COOLDOWN;
     this.chargeDirection.copy(direction);
     this.chargeTimeLeft = 0.6;  // charge lasts 0.6s
+    this._chargeDidHit = false;
     this._playAction('run', true);
 
     setTimeout(() => {
@@ -272,6 +274,7 @@ export class Commander {
   _startRoar() {
     this.isRoaring = true;
     this.roarTimer = this.ROAR_COOLDOWN;
+    this._roarDidHit = false;
     this._playAction('roar', false);
 
     if (this.callbacks.onRoar) this.callbacks.onRoar();
@@ -284,6 +287,12 @@ export class Commander {
 
   _updateRoar(delta, distance) {
     // Roar damages player if close
+    if (distance < this.ROAR_RANGE && !this._roarDidHit) {
+      this._roarDidHit = true;
+      if (this.callbacks.onDamagePlayer) {
+        this.callbacks.onDamagePlayer(this.ATTACK_DAMAGE);
+      }
+    }
   }
 
   // ─────────────────────────────────────────

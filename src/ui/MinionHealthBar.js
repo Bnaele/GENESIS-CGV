@@ -4,34 +4,43 @@
 
 import * as THREE from 'three';
 
+let _stylesInjected = false;
+
+// Injected once per page, not once per bar — a level restart used to append
+// another copy of this block to <head> every time one was constructed.
+function _injectStyles() {
+  if (_stylesInjected) return;
+  _stylesInjected = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    .minion-hp-bar {
+      position: fixed;
+      width: 44px;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid #444;
+      pointer-events: none;
+      z-index: 50;
+      border-radius: 2px;
+      transition: opacity 0.2s;
+    }
+    .minion-hp-fill {
+      width: 100%;
+      height: 100%;
+      background: #cc3333;
+      border-radius: 2px;
+      transition: width 0.2s;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export class MinionHealthBar {
   constructor(camera) {
     this.camera = camera;
     this.bars = new Map();   // entity -> { el, fill, nameTag }
 
-    // Global style
-    const style = document.createElement('style');
-    style.textContent = `
-      .minion-hp-bar {
-        position: fixed;
-        width: 44px;
-        height: 5px;
-        background: rgba(0, 0, 0, 0.8);
-        border: 1px solid #444;
-        pointer-events: none;
-        z-index: 50;
-        border-radius: 2px;
-        transition: opacity 0.2s;
-      }
-      .minion-hp-fill {
-        width: 100%;
-        height: 100%;
-        background: #cc3333;
-        border-radius: 2px;
-        transition: width 0.2s;
-      }
-    `;
-    document.head.appendChild(style);
+    _injectStyles();
   }
 
   /**

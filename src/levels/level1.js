@@ -133,7 +133,6 @@ void main(){
 
 export class StreetLevel {
   constructor(sceneOrRenderer = null, rendererMaybe = null) {
-    this.minionHealthBar = new MinionHealthBar(window.__camera);
     let outerScene = null;
     let renderer = null;
     if (sceneOrRenderer && sceneOrRenderer.isScene) {
@@ -261,11 +260,10 @@ export class StreetLevel {
 
     this._introPlayed = false;
     this._introDone = false;
-    setTimeout(() => {
-      if (!this._introPlayed) {
-        this._introPlayed = true;
-        this._playIntroMonologue();
-      }
+    this._introTimer = setTimeout(() => {
+      if (this._disposed || this._introPlayed) return;
+      this._introPlayed = true;
+      this._playIntroMonologue();
     }, 800);
   }
 
@@ -776,7 +774,8 @@ export class StreetLevel {
   }
 
   createLighting() {
-    this.scene.add(new THREE.HemisphereLight(0xb8a0e8, 0x5a4a70, 1.4));
+    this.hemi = new THREE.HemisphereLight(0xb8a0e8, 0x5a4a70, 1.4);
+    this.scene.add(this.hemi);
     const sun = new THREE.DirectionalLight(0xffd4a8, 2.8);
     sun.position.set(70, 32, -30);
     sun.castShadow = true;
@@ -1844,6 +1843,10 @@ export class StreetLevel {
   }
 
   dispose(outerScene = null) {
+    // Anything still in flight (intro timers, async texture loads) must not
+    // resurrect objects into the level that replaces this one.
+    this._disposed = true;
+    clearTimeout(this._introTimer);
     if (this.villageNPCs) { this.villageNPCs.dispose(); this.villageNPCs = null; }
     if (this.commander) { this.commander.dispose(); this.commander = null; }
     if (this.grunts) { this.grunts.killAll(); this.grunts = null; }
@@ -1856,6 +1859,15 @@ export class StreetLevel {
     if (this.sky && this.sky.parent) this.sky.parent.remove(this.sky);
     if (this.moon && this.moon.parent) this.moon.parent.remove(this.moon);
     if (this.fireflies && this.fireflies.parent) this.fireflies.parent.remove(this.fireflies);
+
+    // Lights live outside this.level, so the traverse below never reaches them
+    if (this.hemi && this.hemi.parent) this.hemi.parent.remove(this.hemi);
+    this.hemi = null;
+    if (this.sun && this.sun.shadow) {
+      if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
+      if (this.sun.shadow.mapPass) { this.sun.shadow.mapPass.dispose(); this.sun.shadow.mapPass = null; }
+    }
+    this.sun = null;
 
     if (this.level) {
       this.level.traverse((object) => {

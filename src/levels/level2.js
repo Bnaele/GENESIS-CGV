@@ -161,6 +161,7 @@ this._buildHazardTiles();
         this.level.add(
             sunset
         );
+        this.sun = sunset;   // kept so dispose() can free its shadow map
 
 
         const cyanLight =
@@ -243,6 +244,9 @@ this._buildHazardTiles();
             './assets/textures/Road.png'
         ).then((bump) => {
             if (!bump) return;
+            // The level may be gone by the time this resolves — the material
+            // it was meant for has already been disposed.
+            if (this._disposed) { bump.dispose(); return; }
             bump.repeat.set(1, 8);   // match roadTexture so relief aligns with the diffuse
             roadMaterial.normalMap = bump;
             roadMaterial.normalScale.set(0.4, 0.4);
@@ -886,13 +890,8 @@ this._buildHazardTiles();
       window.__audioManager.stopMusic();
     }
 
-    // Build the portal at the far end of the street
-    // createPortal puts the portal at (x, y, z-29)
-    // so passing z=59 gives us a portal at (0, 5, 30)
-    if (typeof this.createPortal === 'function' && !this.portal) {
-      this.createPortal(0, 5, 59);
-    }
-
+    // The exit portal is built with the level and stays visible as the
+    // player's landmark; update() refuses to open it until she is down.
     if (window.__audioManager) {
       window.__audioManager.playSfx('portal_activate');
     }
@@ -7099,7 +7098,8 @@ createCityBackground() {
                 // Wait 1 second, then start the intro dialogue
                 if (!this._introDialoguePlayed) {
                     this._introDialoguePlayed = true;
-                    setTimeout(() => {
+                    this._introTimer = setTimeout(() => {
+                        if (this._disposed) return;
                         this._playIntroDialogue();
                     }, 1000);
                 }
@@ -7177,7 +7177,10 @@ createCityBackground() {
         }
 
                 // ── Player enters the portal → switch to Level 3 ──
-        if (this.portal && player && !this._portalEntered) {
+                // The portal only opens once the Enforcer is down; the HUD
+                // objectives already promise this ordering.
+        const bossDown = !this.enforcer || !this.enforcer.alive;
+        if (this.portal && player && bossDown && !this._portalEntered) {
             const pdx = player.pos.x - this.portal.position.x;
             const pdz = player.pos.z - this.portal.position.z;
             const pd = Math.hypot(pdx, pdz);
@@ -7312,6 +7315,10 @@ createCityBackground() {
     // DISPOSE — called by main.js on level switch
     // =============================================================
     dispose(outerScene = null) {
+        // Stop in-flight callbacks from writing into the level that replaces
+        // this one (intro dialogue, road normal map).
+        this._disposed = true;
+        clearTimeout(this._introTimer);
         if (this.streetEnemies) { this.streetEnemies.dispose(); this.streetEnemies = null; }
         if (this.bossHealthBar) { this.bossHealthBar.dispose(); this.bossHealthBar = null; }
         if (this.enforcer) { this.enforcer.dispose(); this.enforcer = null; }
@@ -7343,6 +7350,14 @@ createCityBackground() {
                 this.sky.material.dispose();
             }
         }
+        // Dispose the sun's 2048² shadow render target — lights are not
+        // meshes, so the traverse above skips them.
+        if (this.sun && this.sun.shadow) {
+          if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
+          if (this.sun.shadow.mapPass) { this.sun.shadow.mapPass.dispose(); this.sun.shadow.mapPass = null; }
+        }
+        this.sun = null;
+
         // clear tracking arrays so a disposed level never gets reused
         this.colliders = [];
         this.livingLights = [];

@@ -62,6 +62,7 @@ export class ArchitectLevel {
 
     this.name = "LEVEL 3 — THE ARCHITECT'S MONUMENT";
     this.colliders = [];
+    this._worldCollidersAdded = [];   // subset also pushed to the global registry
     this._propColliders = [];   // filled by builders, merged in _buildColliders
     this._walkSurfaces = [];    // walkable floor boxes {x0,z0,x1,z1,top}
     this._stairRamps = [];      // walkable stair ramps {ax,az,bx,bz,ya,yb,halfWidth}
@@ -408,7 +409,15 @@ export class ArchitectLevel {
     );
     collider.name = label;
     this.colliders.push(collider);
-    if (Array.isArray(worldColliders)) worldColliders.push(collider);
+    // worldColliders outlives the level, so remember what we added and
+    // drop it again in dispose(). Without that, every trip back to the
+    // moon stacked another hull box onto the list every enemy walks
+    // against each frame.
+    if (this._disposed) return;
+    if (Array.isArray(worldColliders)) {
+      worldColliders.push(collider);
+      this._worldCollidersAdded.push(collider);
+    }
   }
 
   createSpaceship() {
@@ -423,6 +432,17 @@ export class ArchitectLevel {
 
     const fbxLoader = new FBXLoader();
     fbxLoader.load('./assets/models/Spaceship.fbx', (fbx) => {
+      // The ship arrives long after the player has walked off the moon if
+      // they die fast; adding it to a torn-down scene would leak it.
+      if (this._disposed) {
+        fbx.traverse((o) => {
+          if (!o.isMesh) return;
+          if (o.geometry) o.geometry.dispose();
+          if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
+          else if (o.material) o.material.dispose();
+        });
+        return;
+      }
       fbx.name = 'SpaceshipExterior';
       fbx.scale.set(1, 1, 1);
       fbx.updateMatrixWorld(true);
@@ -473,6 +493,15 @@ export class ArchitectLevel {
     // Interior corridor GLB
     const gltfLoader = new GLTFLoader();
     gltfLoader.load('./assets/models/space_ship_hallway.glb', (gltf) => {
+      if (this._disposed) {
+        gltf.scene.traverse((o) => {
+          if (!o.isMesh) return;
+          if (o.geometry) o.geometry.dispose();
+          if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
+          else if (o.material) o.material.dispose();
+        });
+        return;
+      }
       const corridor = gltf.scene;
       corridor.scale.set(1, 2, 1.5);
       corridor.position.set(0, 0, 45 + SHIP_LIFT * 0.4);  // raise corridor entry slightly too
@@ -2202,5 +2231,10 @@ export class ArchitectLevel {
     this.godRays = null;
     this._monumentEnv = null;   // texture itself dies with its materials in the traverse
     this.colliders = [];
+    for (const c of this._worldCollidersAdded) {
+      const i = worldColliders.indexOf(c);
+      if (i !== -1) worldColliders.splice(i, 1);
+    }
+    this._worldCollidersAdded = [];
   }
 }

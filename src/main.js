@@ -430,10 +430,17 @@ addEventListener('keydown', e => {
   }
 
   // ── Axiom True Form: Q, gated to the Architect fight ──
-  if (e.code === 'KeyQ') {
+  if (e.code === 'KeyQ' && !e.repeat) {
     trueForm.tryActivate();
   }
-  if (e.code === 'KeyR') switchLevel(current);
+  // Key repeat must not reach these — holding R rebuilt the whole level
+  // ~15 times a second.
+  if (e.code === 'KeyR' && !e.repeat) switchLevel(current);
+
+  // Debug: jump straight to a level. Top-row digits only — e.code for the
+  // numpad is Numpad1, which is not bound.
+  const debugLevel = { Digit1: 1, Digit2: 2, Digit3: 3 }[e.code];
+  if (debugLevel && !e.repeat) switchLevel(debugLevel);
 
     if (e.code === 'Space' && player.grounded && !attackLock && !keys._spaceConsumed
       && !keys.ShiftLeft && !keys.ShiftRight) {

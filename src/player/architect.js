@@ -41,6 +41,7 @@ const FIGHT_CLIPS = {
   heavy:    'architect_great_sword_attack.fbx',
   dropkick: 'architect_drop_kick.fbx',
   spin:     'architect_great_sword_high_spin_attack.fbx',
+  hit:      'reaction.fbx',
   die:      'architect_sword_death.fbx',
 };
 
@@ -624,17 +625,18 @@ export class Architect {
     if (this.phase < 3 && hpPct <= PHASE_HP[3]) this._enterPhase(3);
     else if (this.phase < 2 && hpPct <= PHASE_HP[2]) this._enterPhase(2);
 
-    // Poise — mid-swing and recent flinches don't stagger
-    this._flinchTimer -= 0;   // decremented in update()
+    // Poise — mid-swing and recent flinches don't stagger.
+    // _flinchTimer counts down in update().
     if (this.isAttacking || this._flinching || this._flinchTimer > 0) return;
 
     // Phase 3: sometimes he evades instead of eating the hit
     if (this.phase >= 3 && this._dodgeCooldown <= 0 && Math.random() < 0.3) {
-      this._rollDodge();
+      this._evadeBackstep();
       return;
     }
 
-    // Flinch
+    // Flinch. The reaction clip runs ~1.8s, so recovery is clamped well
+    // short of it — _flinchTimer stays as the poise window instead.
     if (this.actions.hit) {
       this._flinching = true;
       this._flinchTimer = 0.6 + this._clipMs('hit', 500) / 1000;
@@ -644,7 +646,7 @@ export class Architect {
         if (this.alive && this.state === 'fighting' && !this.isAttacking) {
           this._playAction('idle');
         }
-      }, this._clipMs('hit', 500));
+      }, Math.min(this._clipMs('hit', 500), 650));
     }
   }
 
@@ -664,13 +666,15 @@ export class Architect {
     }
   }
 
-  _rollDodge() {
+  _evadeBackstep() {
     this._dodgeCooldown = 4;
     this._flinching = true;
-    this._playAction('roll', false);
-    const dur = this._clipMs('roll', 600);
-    // Back-step away from her (no roll clip — a hasty slide for
-    // now), spread across the action's duration
+    this._playAction('hit', false);
+    // Cover the 2.2 m back-step in ~0.6 s, not the clip's full 1.8 s —
+    // otherwise the evade is slower than her walk.
+    const dur = Math.min(this._clipMs('hit', 600), 600);
+    // She eats the blow on the guard and hops back — the kit has no
+    // dedicated roll, so the reaction clip rides the back-step.
     const away = this._playerPos
       ? new THREE.Vector3(
           this.char.position.x - this._playerPos.x, 0,
