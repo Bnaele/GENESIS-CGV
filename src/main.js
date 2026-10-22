@@ -1337,12 +1337,12 @@ function showCreditsOverlay() {
       <p style="font-size: 13px; color: #666; margin-left: 20px;"><em>Source + licence to confirm.</em></p>
 
       <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">ORIGINAL WORK BY THE TEAM</h2>
-      <p>● All GLSL — analytic moon (craters, maria, rim lighting), Level 1 night sky, animated water, fireflies, Level 3 nebula skybox, god-ray cone, and the model dissolve effect</p>
+      <p>● All GLSL (Banele &amp; Pumelela) — analytic moon (craters, maria, rim lighting), Level 1 night sky, animated water, fireflies, Level 3 nebula skybox, god-ray cone, and the model dissolve effect</p>
       <p>● Level geometry, story, dialogue, cinematics, combat AI, physics and UI</p>
 
       <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">TEAM MEMBERS</h2>
-      <p>● Banele — UI, Audio, Deployment, Voice Direction, Players</p>
-      <p>● Pumelela — Environment, Art</p>
+      <p>● Banele — UI, Audio, Deployment, Voice Direction, Players, Shaders</p>
+      <p>● Pumelela — Environment, Art, Shaders</p>
       <p>● Sibusiso — Player, Controls, Physics</p>
     </div>
     <button id="credits-back" style="
