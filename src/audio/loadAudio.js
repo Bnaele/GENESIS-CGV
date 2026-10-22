@@ -6,11 +6,11 @@
 export function loadAllAudio(audioManager) {
   // ── MUSIC ──
   audioManager.loadSound('level_1_chiptune', {
-    src: './assets/audio/music/level_1_chiptune.mp3',
+    src: './assets/audio/music/level_1_chiptune.ogg',
     loop: true, volume: 0.5,
   });
   audioManager.loadSound('level_2_orchestral', {
-    src: './assets/audio/music/level_2_orchestral.mp3',
+    src: './assets/audio/music/level_2_orchestral.ogg',
     loop: true, volume: 0.5,
   });
   audioManager.loadSound('level_3_electronic', {

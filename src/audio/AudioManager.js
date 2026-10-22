@@ -9,6 +9,7 @@ export class AudioManager {
     this.sounds = {};
     this.currentMusic = null;
     this.currentMusicKey = null;
+    this.currentMusicId = null;
     this.musicVolume = 0.6;
     this.sfxVolume = 0.8;
     this.isMuted = false;
@@ -94,7 +95,7 @@ export class AudioManager {
     if (this.currentMusic) this.currentMusic.stop();
     s.loop(true);
     s.volume(this.musicVolume);
-    s.play();
+    this.currentMusicId = s.play();
     this.currentMusic = s;
     this.currentMusicKey = key;
   }
@@ -104,6 +105,7 @@ export class AudioManager {
       this.currentMusic.stop();
       this.currentMusic = null;
       this.currentMusicKey = null;
+      this.currentMusicId = null;
     }
   }
 
