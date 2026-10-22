@@ -1341,8 +1341,7 @@ function showCreditsOverlay() {
       <p>● Level geometry, story, dialogue, cinematics, combat AI, physics and UI</p>
 
       <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">TEAM MEMBERS</h2>
-      <p>● Banele — UI, Audio, Deployment, Voice Direction</p>
-      <p>● Busisiwe — Shaders</p>
+      <p>● Banele — UI, Audio, Deployment, Voice Direction, Players</p>
       <p>● Pumelela — Environment, Art</p>
       <p>● Sibusiso — Player, Controls, Physics</p>
     </div>
