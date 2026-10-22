@@ -373,7 +373,11 @@ export class Guardian extends Enemy {
       emissiveIntensity: 3, metalness: 0.4, roughness: 0.25,
     });
     const wanted = this.kind === 'blade'
-      ? [{ obj: makeBlade(), hand: 'Right', tilt: Math.PI / 2 }]
+      // The prop's blade runs along its own +Z from the grip. A Mixamo hand
+      // bone aims +Y out through the knuckles, so -90 deg about X lays the
+      // blade onto the fingers. The opposite sign points it back through
+      // his own forearm.
+      ? [{ obj: makeBlade(), hand: 'Right', tilt: -Math.PI / 2 }]
       : [
           { obj: makeGauntlet(gauntletMat, true),  hand: 'Right' },
           { obj: makeGauntlet(gauntletMat, false), hand: 'Left'  },
