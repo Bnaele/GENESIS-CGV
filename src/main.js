@@ -1620,29 +1620,30 @@ const trailerDirector = new TrailerDirector({
   menuScene,
   menuCanvas,
   onFinish: () => {
-    // Trailer v2 chain: the prologue hands straight into the Level 2
-    // showcase, then Level 3 — one continuous capture through the
-    // main renderer.
-    window.__trailerLevel2 = true;
+    // Trailer chain: prologue → Level 1 showcase → Level 2 → Level 3 → End card
+    // One continuous capture through the main renderer.
     playerHealth.invincible = true;
-    bootShowcaseLevel(2, (lvl) => {
-      const run = lvl.trailerRun(getTrailerOverlay(), trailerAlive);
-      run.then(() => {
+    bootShowcaseLevel(1, (lvl) => {
+      lvl.trailerRun(getTrailerOverlay(), trailerAlive).then(() => {
         if (!trailerAlive()) return;
-        window.__trailerLevel2 = false;
-        bootShowcaseLevel(3, (l3) => {
-          l3.trailerRun(getTrailerOverlay(), trailerAlive).then(() => {
-            // ── END CARD — after Level 3 showcase ──
+        bootShowcaseLevel(2, (l2) => {
+          l2.trailerRun(getTrailerOverlay(), trailerAlive).then(() => {
             if (!trailerAlive()) return;
-            const overlay = getTrailerOverlay();
-            overlay.titleCard('GENESIS', 'COMING SOON', 4000).then(() => {
-              overlay.fadeOut(1200);
-              trailerOverlay = null;
-              window.__trailerAlive = false;
-              // Return to menu
-              uiManager.showScreen('main-menu');
-              if (menuScene) menuScene.start();
-              if (menuCanvas) menuCanvas.style.display = '';
+            bootShowcaseLevel(3, (l3) => {
+              l3.trailerRun(getTrailerOverlay(), trailerAlive).then(() => {
+                // ── END CARD — after Level 3 showcase ──
+                if (!trailerAlive()) return;
+                const overlay = getTrailerOverlay();
+                overlay.titleCard('GENESIS', 'COMING SOON', 4000).then(() => {
+                  overlay.fadeOut(1200);
+                  trailerOverlay = null;
+                  window.__trailerAlive = false;
+                  // Return to menu
+                  uiManager.showScreen('main-menu');
+                  if (menuScene) menuScene.start();
+                  if (menuCanvas) menuCanvas.style.display = '';
+                });
+              });
             });
           });
         });
@@ -1705,7 +1706,7 @@ function bootShowcaseLevel(n, run) {
 
 // ?trailer=1 — auto-roll on load (kiosk / capture setups). Runs AFTER
 // the menu is up, so the director's hideAllScreens() wins the paint.
-// The chain: prologue -> Level 2 showcase -> Level 3 showcase.
+// The chain: prologue → Level 1 showcase → Level 2 → Level 3 → End card.
 if (new URLSearchParams(location.search).has('trailer')) {
   trailerDirector.start();
 }

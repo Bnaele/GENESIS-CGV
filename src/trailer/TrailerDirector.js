@@ -8,15 +8,15 @@
 //   1. HOME     — Sorini asleep in her house
 //   2. THE FALL — the artifact crash-lands outside her window
 //   3. VISITOR  — it drifts in and docks in her chest ("Sorini.")
-//   4. TAKING   — it takes her body and will (l1_axiom_3 VO)
-//   5. INVASION — it carries her to Level 1's war (ships overhead)
+//   4. TAKING   — it takes her body and will
 //
-// …then hands control to Level 1, whose own cinematic intro
-// (8-shot camera + full Axiom dialogue) plays automatically.
+// …then hands control to the Level 1 showcase (village + Guardian),
+// followed by Level 2 (neon street surroundings) and Level 3
+// (monument exterior → interior → Architect standoff).
 //
 // The prologue renders through the MAIN renderer on its own scene,
 // so a single OBS capture records everything. ESC skips to gameplay.
-// Voice lines are the game's real files — no new narration needed.
+// Subtitles carry the narrative — no voice lines in the trailer.
 // ============================================================
 import * as THREE from 'three';
 import { CinematicCamera } from '../ui/CinematicCamera.js';
@@ -260,7 +260,6 @@ export class TrailerDirector {
     P.showFlyer(true);
     this._flightT0 = this._t;
     await this._sleep(5600); if (!alive()) return;   // crater → window → hover
-    this._voice('l1_axiom_1');                        // "Sorini."
     this._showCaption('It had been looking for her.');
     await this._sleep(3600); if (!alive()) return;
     this._hideCaption();
@@ -291,7 +290,6 @@ export class TrailerDirector {
         duration: 6000, transition: 2000, drift: [-0.3, 1.0, -0.5], ease: 'in-out',
       },
     ]);
-    this._voice('l1_axiom_3');   // "Not with a mouth — with a mind…"
     this._riseT0 = this._t;
     await this._sleep(1300); if (!alive()) return;
     this._showCaption('It took her mind.');
@@ -306,34 +304,7 @@ export class TrailerDirector {
     this._riseT0 = null;
     this._levT0 = null;
 
-    // ── flip → CARD 5 — THE INVASION ──
-    this._audio.playSfx('portal_activate');
-    this._flash(600);
-    await this._flipSwap(() => {
-      P.setMode('invasion');
-      P.setRise(1);
-      P.setLevitate(0);
-      P.setArtifactIntensity(1.4);
-    });
-    if (!alive()) return;
-    // Music already playing from title card — just adjust volume for the invasion
-    this._audio.setMusicVolume(0.55);
-    this._cam.play([{
-      pos: [1.2, 0.6, -3.6], look: [0, 1.5, 5],
-      duration: 11000, transition: 0, drift: [-0.5, 0.4, 1.2], ease: 'in-out',
-    }]);
-    await this._sleep(1100); if (!alive()) return;
-    this._showCaption('It carried her to the war.');
-    await this._sleep(3400); if (!alive()) return;
-    this._hideCaption();
-    await this._sleep(400); if (!alive()) return;
-    this._voice('l1_ship_1');    // "So many spaceships."
-    this._showCaption('So many spaceships.');
-    await this._sleep(2800); if (!alive()) return;
-    this._hideCaption();
-    await this._sleep(2600); if (!alive()) return;   // let the ships breathe
-
-    // Close the book and roll Level 1
+    // Close the book and hand off to the Level 1 showcase
     this.finish(false);
   }
 

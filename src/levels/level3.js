@@ -2163,25 +2163,44 @@ export class ArchitectLevel {
       p.grounded = true;
     }
 
-    // ── beat 1 — the surroundings: the ship vista, then the hall ──
+    // ── beat 1 — EXTERIOR: wide shot of the moon surface, spaceship, monument, flag ──
     cam.play([
-      {   // Genesis ship parked, monument far ahead
-        pos: [26.5, surf(26, 37) + 3.4, 37],
-        look: [20, surf(20, 30) + 1.4, 28],
-        duration: 8000, transition: 1600,
-        drift: [1.2, -0.2, -1.6], ease: 'in-out',
+      {
+        // High wide shot — Genesis ship on the right, monument ahead, flag visible
+        pos: [35, surf(35, 30) + 14, 30],
+        look: [5, surf(5, 0) + 2, 0],
+        duration: 10000, transition: 1600,
+        drift: [-0.8, -0.15, -1.2], ease: 'in-out',
       },
-      {   // down the hall — Guardians flanking, the throne beyond
+    ]);
+    await sleep(11000);
+    if (!isAlive()) return;
+
+    // ── beat 2 — closer exterior: spaceship and the path to the monument ──
+    cam.play([
+      {
+        pos: [22, surf(22, 20) + 6, 20],
+        look: [0, surf(0, 5) + 1.5, 5],
+        duration: 8000, transition: 1400,
+        drift: [0.6, -0.1, -0.9], ease: 'in-out',
+      },
+    ]);
+    await sleep(9000);
+    if (!isAlive()) return;
+
+    // ── beat 3 — go inside: down the hall, Guardians flanking, throne beyond ──
+    cam.play([
+      {
         pos: [0, fy + 2.6, -80],
         look: [0, fy + 1.8, -100],
         duration: 8000, transition: 1400,
         drift: [0.8, -0.15, -1.5], ease: 'in-out',
       },
     ]);
-    await sleep(17000);
+    await sleep(9000);
     if (!isAlive()) return;
 
-    // ── beat 2 — THE BLADE ──
+    // ── beat 4 — THE BLADE ──
     const blade = this.guardians.find((g) => g && g.kind === 'blade') || this.guardians[0];
     if (blade && blade.group) {
       const bp = blade.group.position;
@@ -2195,7 +2214,7 @@ export class ArchitectLevel {
       if (!isAlive()) return;
     }
 
-    // ── beat 3 — THE FIST ──
+    // ── beat 5 — THE FIST ──
     const fist = this.guardians.find((g) => g && g.kind === 'fist') || this.guardians[1];
     if (fist && fist.group) {
       const fp = fist.group.position;
@@ -2209,7 +2228,7 @@ export class ArchitectLevel {
       if (!isAlive()) return;
     }
 
-    // ── beat 4 — black; clear the Guardians; she walks into destiny ──
+    // ── beat 6 — black; clear the Guardians; she walks into destiny ───
     overlay.setPagesOpen(false);
     await sleep(750);
     if (!isAlive()) return;
@@ -2234,7 +2253,7 @@ export class ArchitectLevel {
     }
     if (!isAlive()) return;
 
-    // ── beat 5 — she answers: TRUE FORM, then the wide two-shot ──
+    // ── beat 7 — she answers: TRUE FORM, then the wide two-shot ──
     if (window.__trueForm && typeof window.__trueForm.forceShow === 'function') {
       window.__trueForm.forceShow();
     }

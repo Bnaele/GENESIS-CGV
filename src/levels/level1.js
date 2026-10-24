@@ -1843,6 +1843,87 @@ export class StreetLevel {
     return out;
   }
 
+  // ─ Trailer showcase — village overview + Guardian + subtitles ──
+  async trailerRun(overlay, isAlive) {
+    const cam = window.__cinematicCamera;
+    if (!cam || typeof cam.play !== 'function') return;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const surf = (x, z) =>
+      (typeof this.getSurfaceHeight === 'function' ? this.getSurfaceHeight(x, z) : 0);
+    const p = window.__player;
+    if (!p) return;
+
+    // ── beat 0 — title card ──
+    const title = overlay.titleCard('LEVEL 1', 'THE GROVE', 2600);
+    await sleep(1000);
+    overlay.setPagesOpen(true);
+    await title;
+    if (!isAlive()) return;
+
+    // Park the player safely away from enemies
+    p.pos.set(0, surf(0, 50), 50);
+    p.vel.set(0, 0, 0);
+    p.yaw = Math.PI;
+    p.cameraYaw = Math.PI;
+    p.grounded = true;
+
+    // ─ beat 1 — wide establishing shot of the village ──
+    // High angle looking down the winding path, crashed ships visible
+    cam.play([
+      {
+        pos: [18, surf(18, 30) + 12, 30],
+        look: [this.pathX(10), surf(this.pathX(10), 10) + 1, 10],
+        duration: 9000, transition: 1400,
+        drift: [-0.6, -0.15, -1.0], ease: 'in-out',
+      },
+    ]);
+    await sleep(1200);
+    overlay.showCaption('Spaceships. The aliens have come for the Axiom.');
+    await sleep(5000);
+    overlay.hideCaption();
+    await sleep(3000);
+    if (!isAlive()) return;
+
+    // ── beat 2 — The Guardian standing tall at the end of the path ──
+    // Spawn the commander if not already spawned, so we can show it
+    if (!this.commanderSpawned) this._spawnCommander();
+    const cmdPos = this.commander ? this.commander.getPosition() : { x: this.pathX(-58), y: surf(this.pathX(-58), -58), z: -58 };
+
+    cam.play([
+      {
+        // Low angle, looking up at the Guardian — imposing and tall
+        pos: [cmdPos.x + 5, cmdPos.y + 1.2, cmdPos.z + 8],
+        look: [cmdPos.x, cmdPos.y + 2.5, cmdPos.z],
+        duration: 8000, transition: 1400,
+        drift: [-0.3, 0.05, -0.5], ease: 'in-out',
+      },
+    ]);
+    await sleep(1200);
+    overlay.showCaption('Sorini must fight them off.');
+    await sleep(4000);
+    overlay.hideCaption();
+    await sleep(3000);
+    if (!isAlive()) return;
+
+    // ── beat 3 — final subtitle ──
+    cam.play([{
+      pos: [cmdPos.x - 4, cmdPos.y + 2.0, cmdPos.z + 6],
+      look: [cmdPos.x, cmdPos.y + 2.2, cmdPos.z],
+      duration: 7000, transition: 1200,
+      drift: [0.4, -0.05, -0.4], ease: 'in-out',
+    }]);
+    await sleep(1000);
+    overlay.showCaption('Will she be able to?');
+    await sleep(4000);
+    overlay.hideCaption();
+    await sleep(2500);
+    if (!isAlive()) return;
+
+    // Close the book — the chain cuts to Level 2 behind the pages
+    overlay.setPagesOpen(false);
+    await sleep(800);
+  }
+
   dispose(outerScene = null) {
     if (this.villageNPCs) { this.villageNPCs.dispose(); this.villageNPCs = null; }
     if (this.commander) { this.commander.dispose(); this.commander = null; }

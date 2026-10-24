@@ -757,7 +757,6 @@ this._buildHazardTiles();
         const surf = (x, z) =>
             (typeof this.getSurfaceHeight === 'function' ? this.getSurfaceHeight(x, z) : 0);
         const p = window.__player;
-        const key = window.__trailerKey || (() => {});
         if (!p) return;
 
         // ── beat 0 — title card, then open the book ──
@@ -767,70 +766,38 @@ this._buildHazardTiles();
         await title;
         if (!isAlive()) return;
 
-        // ── beat 1 — THE ENFORCER, coming down the street ──
-        if (this.enforcer) {
-            p.pos.set(0, surf(0, 30), 30);
-            p.vel.set(0, 0, 0);
-            p.yaw = 0;                        // face +Z, down the street
-            p.cameraYaw = 0;
-            p.grounded = true;
-            this.enforcer.position.set(0, surf(0, 62), 62);
-            if (this.enforcer._group) this.enforcer._group.position.copy(this.enforcer.position);
-
-            const enfHead = () => {
-                const e = this.enforcer.getPosition();
-                return { x: e.x, y: e.y + 2.4, z: e.z };
-            };
-            const inFrontOfEnf = (dist, h) => () => {
-                const e = this.enforcer.getPosition();
-                const dx = p.pos.x - e.x, dz = p.pos.z - e.z;
-                const len = Math.hypot(dx, dz) || 1;
-                return { x: e.x + (dx / len) * dist, y: e.y + h, z: e.z + (dz / len) * dist };
-            };
-            cam.play([
-                {   // retreating front shot — she walks into frame, keeps coming
-                    pos: inFrontOfEnf(7.0, 1.7),
-                    look: enfHead,
-                    duration: 8000, transition: 900,
-                    drift: [0, -0.06, 0], ease: 'in-out',
-                },
-                {   // over Sorini's shoulder, the Enforcer closing in
-                    pos: () => ({ x: p.pos.x + 1.6, y: p.pos.y + 1.75, z: p.pos.z - 2.4 }),
-                    look: enfHead,
-                    duration: 6000, transition: 1400,
-                    drift: [-0.3, -0.05, -0.4], ease: 'in-out',
-                },
-            ]);
-            await sleep(15500);
-            if (!isAlive()) return;
-        }
-
-        // ── beat 2 — THE NEW MOVES: sprint, Axiom Dash, punch/kick/hook ──
-        p.pos.set(0, surf(0, -48), -48);
+        // Park the player safely away from enemies
+        p.pos.set(0, surf(0, -90), -90);
         p.vel.set(0, 0, 0);
         p.yaw = 0;
         p.cameraYaw = 0;
         p.grounded = true;
-        cam.play([{   // side-on tracking shot
-            pos: () => ({ x: p.pos.x + 4.8, y: p.pos.y + 1.5, z: p.pos.z - 1.2 }),
-            look: () => ({ x: p.pos.x, y: p.pos.y + 1.1, z: p.pos.z }),
-            duration: 10000, transition: 700,
-            drift: [-0.5, -0.05, 0.8], ease: 'in-out',
-        }]);
-        await sleep(900);
-        key('ShiftLeft', 2500);           // hold sprint…
-        key('KeyW', 2500);                // …and run
-        await sleep(2000);
-        key('Space', 140);                // SHIFT+SPACE — AXIOM DASH
-        await sleep(1500);
-        key('KeyF'); await sleep(800);    // punch
-        key('KeyF'); await sleep(800);    // punch
-        key('KeyG'); await sleep(900);    // kick
-        key('KeyH');                      // hook
-        await sleep(1500);
+
+        // ── beat 1 — wide shot of the neon street, buildings on both sides ──
+        cam.play([
+            {
+                pos: [20, surf(20, -50) + 8, -50],
+                look: [0, surf(0, -60) + 2, -60],
+                duration: 9000, transition: 1400,
+                drift: [-0.5, -0.1, -1.2], ease: 'in-out',
+            },
+        ]);
+        await sleep(10000);
         if (!isAlive()) return;
 
-        // ── beat 3 — THE ELECTRIFYING TILES ──
+        // ── beat 2 — look down the street, neon signs and street lights ──
+        cam.play([
+            {
+                pos: [-16, surf(-16, -30) + 5, -30],
+                look: [0, surf(0, -60) + 3, -60],
+                duration: 8000, transition: 1200,
+                drift: [0.4, -0.08, -0.8], ease: 'in-out',
+            },
+        ]);
+        await sleep(9000);
+        if (!isAlive()) return;
+
+        // ── beat 3 — the electrifying tiles (hazard showcase) ──
         p.pos.set(3, surf(3, -10), -10);
         p.vel.set(0, 0, 0);
         p.grounded = true;
@@ -846,8 +813,7 @@ this._buildHazardTiles();
         for (const tile of this.hazardTiles) tile._trailerForceOn = false;
         if (!isAlive()) return;
 
-        // Close the book on black — the ?trailer=1 chain cuts to Level 3
-        // behind the pages; a standalone take ends here.
+        // Close the book on black — the chain cuts to Level 3
         overlay.setPagesOpen(false);
         await sleep(800);
     }
