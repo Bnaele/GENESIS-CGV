@@ -936,8 +936,11 @@ function showLevelComplete() {
                 uiManager.hideAllScreens();
                 uiManager.showHUD();
                 audioManager.playMusic(musicKey);
-                switchLevel(nextLevel);
-                requestGamePointerLock();
+                // Yield to browser so loading screen can render before heavy level construction
+                requestAnimationFrame(() => {
+                  switchLevel(nextLevel);
+                  requestGamePointerLock();
+                });
               };
             }
           } else {
@@ -948,8 +951,11 @@ function showLevelComplete() {
         }, 200);
       } else {
         // Level 1 → no extra briefing (already shown at game start)
-        switchLevel(nextLevel);
-        requestGamePointerLock();
+        // Yield to browser so UI can update before heavy level construction
+        requestAnimationFrame(() => {
+          switchLevel(nextLevel);
+          requestGamePointerLock();
+        });
       }
     },
   });
@@ -1821,17 +1827,20 @@ const mainMenuElement = createMainMenu(
           continueBtn.onclick = () => {
             uiManager.hideAllScreens();
             uiManager.showHUD();
-            if (!gameStarted.value) {
-              gameStarted.value = true;
-              switchLevel(1);
-              tick();
-            } else {
-              switchLevel(1);
-            }
-            // Capture the mouse right away — THIS click is the user
-            // gesture the browser requires, so Esc can pause without
-            // any extra click on the canvas.
-            requestGamePointerLock();
+            // Yield to browser so loading screen can render before heavy level construction
+            requestAnimationFrame(() => {
+              if (!gameStarted.value) {
+                gameStarted.value = true;
+                switchLevel(1);
+                tick();
+              } else {
+                switchLevel(1);
+              }
+              // Capture the mouse right away — THIS click is the user
+              // gesture the browser requires, so Esc can pause without
+              // any extra click on the canvas.
+              requestGamePointerLock();
+            });
           };
         }
       } else {
