@@ -908,8 +908,48 @@ function showLevelComplete() {
     nextLabel: `CONTINUE — LEVEL ${finished + 1}`,
     onContinue: () => {
       _levelDeaths = 0;
-      switchLevel(finished + 1);
-      requestGamePointerLock();
+      const nextLevel = finished + 1;
+
+      // Levels 2 and 3 get a story briefing before loading
+      if (nextLevel === 2 || nextLevel === 3) {
+        hideDebrief();
+        const storyText = nextLevel === 2 ? LEVEL2_STORY : LEVEL3_STORY;
+        const levelLabel = nextLevel === 2 ? 'LEVEL 2' : 'LEVEL 3';
+        const levelTitle = nextLevel === 2 ? 'NEON STREET' : "THE ARCHITECT'S MONUMENT";
+        const musicKey = nextLevel === 2 ? 'level_2_orchestral' : 'level_3_electronic';
+
+        uiManager.showScreen('loading');
+        updateLoadingScreen(levelLabel, levelTitle, storyText, 0, 'Initializing...');
+
+        let progress = 0;
+        const loadInterval = setInterval(() => {
+          progress += Math.random() * 18 + 4;
+          if (progress >= 100) {
+            progress = 100;
+            clearInterval(loadInterval);
+            updateLoadingScreen(levelLabel, levelTitle, storyText, 100, 'Ready!', true);
+
+            const continueBtn = document.getElementById('continueBtn');
+            if (continueBtn) {
+              continueBtn.onclick = () => {
+                uiManager.hideAllScreens();
+                uiManager.showHUD();
+                audioManager.playMusic(musicKey);
+                switchLevel(nextLevel);
+                requestGamePointerLock();
+              };
+            }
+          } else {
+            const statuses = ['Loading assets...', 'Building world...', 'Spawning enemies...', 'Almost ready...'];
+            const statusIndex = Math.floor(progress / 25);
+            updateLoadingScreen(levelLabel, levelTitle, storyText, progress, statuses[statusIndex % statuses.length]);
+          }
+        }, 200);
+      } else {
+        // Level 1 → no extra briefing (already shown at game start)
+        switchLevel(nextLevel);
+        requestGamePointerLock();
+      }
     },
   });
 }
@@ -1717,6 +1757,20 @@ const LEVEL1_STORY =
   'The Axiom on Sorini\'s chest drew her to an unfamiliar land — and the aliens ' +
   'hunting it followed. Stop them before they ruin the village looking for her, ' +
   'then face the Warden.';
+
+const LEVEL2_STORY =
+  'The Warden is dead, but the Architect\'s grip on the city is tightening. ' +
+  'Sorini moves through the neon-lit streets — the Axiom thrumming against her chest, ' +
+  'guiding her toward the signal source. But the Architect sent his deadliest enforcer ' +
+  'to hold the district. Break through The Enforcer, and the path to the monument opens.';
+
+const LEVEL3_STORY =
+  'The Enforcer lies broken in the street behind you. Above the city, the Architect\'s ' +
+  'monument pulses on the moon — a black spire built from the same alien metal as the ' +
+  'Axiom itself. Sorini boards the Genesis ship. The Axiom speaks: *"You are ready."* ' +
+  'At the throne room, the Architect rises without touching his seat. He draws a ' +
+  'greatsword from thin air. This is the last fight. Win, and you decide what becomes ' +
+  'of the god who made your parasite.';
 
 const mainMenuElement = createMainMenu(
   // PLAY
