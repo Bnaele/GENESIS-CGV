@@ -376,6 +376,42 @@ const trueForm = new AxiomTrueForm({
 });
 window.__trueForm = trueForm;
 
+// ── Debug visualisation helpers ──
+let _wireframeOn = false;
+let _colliderHelpers = [];   // THREE.BoxHelper instances for collider viz
+
+function toggleWireframe() {
+  _wireframeOn = !_wireframeOn;
+  scene.traverse((o) => {
+    if (o.isMesh && o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if ('wireframe' in m) m.wireframe = _wireframeOn;
+      }
+    }
+  });
+  console.log(`[GENESIS] Wireframe ${_wireframeOn ? 'ON' : 'OFF'}`);
+}
+
+function toggleColliderViz() {
+  // Remove existing helpers
+  for (const h of _colliderHelpers) scene.remove(h);
+  _colliderHelpers = [];
+
+  const wasShowing = _colliderHelpers.length > 0;
+  if (!wasShowing && level && Array.isArray(level.colliders)) {
+    for (const box of level.colliders) {
+      if (!box) continue;
+      const helper = new THREE.Box3Helper(box, 0xff2222);
+      scene.add(helper);
+      _colliderHelpers.push(helper);
+    }
+    console.log(`[GENESIS] Collider viz ON — ${_colliderHelpers.length} boxes`);
+  } else {
+    console.log('[GENESIS] Collider viz OFF');
+  }
+}
+
 // Arrow keys mirror WASD — same movement, nothing else changes.
 const ARROW_TO_KEY = { ArrowUp: 'KeyW', ArrowLeft: 'KeyA', ArrowDown: 'KeyS', ArrowRight: 'KeyD' };
 
@@ -420,6 +456,10 @@ addEventListener('keydown', e => {
     }
     return;
   }
+
+  // ── Debug visualisation (works even while paused) ──
+  if (e.code === 'F1' && !e.repeat) { e.preventDefault(); toggleWireframe(); return; }
+  if (e.code === 'F2' && !e.repeat) { e.preventDefault(); toggleColliderViz(); return; }
 
   // Gameplay input frozen while paused, dead, or reading the debrief —
   // the debrief keeps its own Space/Enter listener for CONTINUE.

@@ -52,6 +52,8 @@ with the god who made your parasite?
 | `Esc` | Pause menu — resume, restart, a full controls reference, volumes, mouse sensitivity, quit to menu |
 | `Space` / `Enter` | Skip the current dialogue line |
 | `1` / `2` / `3` | Pick a dialogue/ending choice |
+| `F1` | Toggle wireframe mode (debug — shows raw geometry) |
+| `F2` | Toggle collider visualisation (debug — shows collision boxes) |
 
 Combat is combo-driven: enemies flinch, bosses have **poise** (they don't
 stagger mid-swing), and boss health bars announce **phases** — the Architect
