@@ -787,7 +787,8 @@ export class StreetLevel {
       const hy = this._h(hx, hz);
       const w = 4 * def.scale, d = 3.2 * def.scale, h = 2.6 * def.scale;
       // House body: platform (0.25) + walls (h) + roof (~1.5)
-      this._addBoxCollider(hx, hz, w * 0.55, d * 0.55, 0.25 + h + 1.5, hy);
+      // Use exact size (0.5 = half-width) to avoid invisible barriers
+      this._addBoxCollider(hx, hz, w * 0.5, d * 0.5, 0.25 + h + 1.5, hy);
     }
     // ── ALL fence sections — 12 fences along the path ──
     const fenceDefs = [
@@ -803,7 +804,8 @@ export class StreetLevel {
       const fz = def.z;
       const fy = this._h(fx, fz);
       // Fence: 4 units long, 1.2 units tall
-      this._addBoxCollider(fx, fz, 2.2, 0.3, 1.2, fy);
+      // Use exact size (2.0 half-width = 4.0 total) to avoid blocking path
+      this._addBoxCollider(fx, fz, 2.0, 0.25, 1.2, fy);
     }
     // ── ALL crashed ships — 6 ships scattered around ──
     const shipDefs = [
@@ -817,8 +819,8 @@ export class StreetLevel {
     for (const def of shipDefs) {
       const sy = this._h(def.x, def.z);
       const s = def.scale;
-      // Hull is 6x2.2x3.5, scaled. Collider covers the main body.
-      this._addBoxCollider(def.x, def.z, 3.5 * s, 2.2 * s, 3.0 * s, sy);
+      // Hull is 6x2.2x3.5, scaled. Use tighter collider to match hull.
+      this._addBoxCollider(def.x, def.z, 3.0 * s, 1.8 * s, 3.0 * s, sy);
     }
   }
 
