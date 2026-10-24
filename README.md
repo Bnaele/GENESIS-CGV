@@ -78,6 +78,73 @@ desperate.
   cyan screen tint, before a 1s power-down into a 25s cooldown
 - **git-lfs** — all binary assets (FBX models, audio) are LFS-tracked
 
+## Graphics Techniques
+
+A mapping of the graphics techniques used in GENESIS to typical CGV rubric
+categories. See [TECHNICAL.md](./TECHNICAL.md) for the full mathematical
+breakdown of each shader.
+
+### Shading & Materials
+
+| Technique | Where | Details |
+|-----------|-------|---------|
+| **Custom GLSL vertex + fragment shaders** | `shaders/moon.js`, `shaders/shaders.js`, `levels/level1.js` | 8 hand-written shader programs (moon, nebula sky, god rays, dissolve, water, fireflies, petals, sky dome) |
+| **Procedural cratered moon** | `shaders/moon.js` | 3-octave value noise terrain, 6 large + 45 medium + 65 tiny procedural craters with bowl/rim geometry, normal-from-height derivation, diffuse lighting, lunar maria colour variation, micro-dust and impact speckles |
+| **PBR materials** | All levels | `MeshStandardMaterial` with procedural roughness maps, metalness, emissive maps (lit windows glow), and canvas-generated detail textures |
+| **Procedural normal maps** | `utils/utils.js` | Grayscale height → tangent-space normal via Sobel filtering; used for brushed monument steel, wet asphalt, monument plaza, throne hall floor |
+| **Procedural environment maps** | `utils/utils.js` | Equirectangular reflection maps painted on canvas (moon void with Earth glow + nebula wisps, neon street with sign bands); fed to `PMREMGenerator` for PBR reflections |
+| **Fresnel reflections** | `levels/level1.js` (water shader) | `pow(1.0 - abs(viewDotNormal), 2.0)` drives sky-reflection blend on the village pond |
+| **Emissive materials** | All levels | Glowing windows, neon signs, conduit lines, lanterns — `emissiveMap` doubles as the diffuse map so lit windows shine |
+| **Material injection via `onBeforeCompile`** | `shaders/shaders.js` | Dissolve effect injects uniforms + GLSL into existing `MeshStandardMaterial` pipeline so skinned characters keep skinning + lighting |
+
+### Lighting & Shadows
+
+| Technique | Where | Details |
+|-----------|-------|---------|
+| **Shadow mapping** | All levels | `PCFShadowMap`, 2048×2048 maps, tuned frustum (`shadow.camera.left/right/top/bottom`) per level |
+| **Hemisphere light** | Levels 1, 2 | Sky/ground ambient fill (`HemisphereLight`) |
+| **Directional light** | All levels | Sun/moon key light with shadow casting |
+| **Point lights** | All levels | Lanterns, neon signs, boss auras, guardian blade glow |
+| **Dynamic flicker** | `levels/level1.js`, `levels/level2.js` | `livingLights[]` array — every point light gets a subtle organic sine-noise flicker each frame |
+| **Exponential fog** | Levels 1, 2 | `FogExp2` / `Fog` for atmospheric depth fade |
+| **ACES filmic tone mapping** | `main.js` | `renderer.toneMapping = THREE.ACESFilmicToneMapping` at 1.35 exposure |
+
+### Animation
+
+| Technique | Where | Details |
+|-----------|-------|---------|
+| **FBX animation retargeting** | `enemies/grunts.js`, `player/architect.js` | Bone-name normalisation + clip remapping so Mixamo clips drive any rig |
+| **State-based animation blending** | All enemy/boss files | `fadeIn`/`fadeOut` crossfades between idle, walk, run, attack, hit, die states |
+| **Procedural vertex animation** | `levels/level1.js` (water, fireflies, petals) | Time-driven vertex displacement in GLSL (sine waves, noise-based drift) |
+| **Procedural sky animation** | `shaders/shaders.js`, `levels/level1.js` | Animated fbm cloud layers, twinkling stars, drifting firefly point sprites |
+| **Cinematic camera system** | `ui/CinematicCamera.js` | Queued shots with smooth interpolation, dynamic target tracking (functions re-evaluated per frame), configurable easing, drift offsets |
+
+### Geometry & Scene Construction
+
+| Technique | Where | Details |
+|-----------|-------|---------|
+| **Procedural terrain** | `levels/level1.js` | FBM noise displacement on a `PlaneGeometry` grid for the village ground |
+| **Procedural geometry** | All levels | Canvas-generated textures, instanced trees/lanterns, composed primitives (crashed ships, monument, throne) |
+| **FBX model pipeline** | All levels | Mixamo character rigs, GLB environment props (spaceship hallway, monument interior) |
+| **Custom collision system** | `physics/CollisionSystem.js` | 2.5D cylinder-vs-AABB resolution, entity push-out, raycast detection — no physics engine |
+
+### Special Effects
+
+| Technique | Where | Details |
+|-----------|-------|---------|
+| **Dissolve death effect** | `shaders/shaders.js` | Noise texture drives a discard threshold; orange edge glow via `smoothstep` around the burn line |
+| **God ray volumetric light** | `shaders/shaders.js` | Additive-blended cone with vertical fade, rim softening, and time-based flicker |
+| **Damage flash** | `ui/DamageFlash.js` | Full-screen red overlay on player hit |
+| **Axiom True Form transformation** | `player/AxiomTrueForm.js` | Freeze-frame + white flash, nested-octahedron orb bloom, backface rim-light silhouette, particle aura, ground shockwave ring, afterimage trail, cyan screen tint, time-dilated combat |
+| **Positional audio** | `audio/AudioManager.js` | Distance-based volume falloff, stereo panning via camera-space bearing |
+
+### Debug / Presentation
+
+| Input | Action |
+|-------|--------|
+| `F1` | Toggle wireframe mode — shows the raw geometry of every mesh in the scene |
+| `F2` | Toggle collider visualisation — draws all active collision boxes as red wireframes |
+
 ## Getting Started
 
 Prerequisites:
