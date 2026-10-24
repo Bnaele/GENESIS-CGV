@@ -528,7 +528,8 @@ renderer.domElement.addEventListener('click', () => {
   }
 
   // Safety net: if the level track ever drops out, bring it back here.
-  if (window.__audioManager && !window.__audioManager.currentMusic) {
+  // Skip during trailer — trailer music is already playing.
+  if (window.__audioManager && !window.__audioManager.currentMusic && !window.__trailerMode) {
     const musicMap = { 1: 'level_1_chiptune', 2: 'level_2_orchestral', 3: 'level_3_electronic' };
     const track = musicMap[current];
     if (track) audioManager.playMusic(track);
@@ -870,7 +871,8 @@ dash.enabled = (n >= 2);
 
   const musicMap = { 1: 'level_1_chiptune', 2: 'level_2_orchestral', 3: 'level_3_electronic' };
   const track = musicMap[n];
-  if (track) audioManager.playMusic(track);
+  // Skip level music during trailer — trailer music is already playing
+  if (track && !window.__trailerMode) audioManager.playMusic(track);
 }
 
 window.__switchLevel = switchLevel;
@@ -1638,6 +1640,7 @@ const trailerDirector = new TrailerDirector({
                   overlay.fadeOut(1200);
                   trailerOverlay = null;
                   window.__trailerAlive = false;
+                  window.__trailerMode = false;   // trailer chain done
                   // Return to menu
                   uiManager.showScreen('main-menu');
                   if (menuScene) menuScene.start();
@@ -1667,6 +1670,7 @@ let trailerOverlay = null;
 const getTrailerOverlay = () =>
   (trailerOverlay ||= new TrailerOverlay({ skipHint: 'ESC — END CAPTURE' }));
 window.__trailerAlive = true;
+window.__trailerMode = false;   // true only while the trailer chain is running
 const trailerAlive = () => window.__trailerAlive !== false;
 
 window.__trailerKey = (code, downMs = 140) => {
@@ -1711,8 +1715,9 @@ if (new URLSearchParams(location.search).has('trailer')) {
   trailerDirector.start();
 }
 
-// ?level2=1 — Level 2 showcase only: Enforcer, moves, electric tiles.
+// ?level2=1 — Level 2 showcase only: surroundings, electric tiles.
 if (new URLSearchParams(location.search).has('level2')) {
+  window.__trailerMode = true;
   window.__trailerLevel2 = true;
   playerHealth.invincible = true;
   bootShowcaseLevel(2, (lvl) => {
@@ -1724,6 +1729,7 @@ if (new URLSearchParams(location.search).has('level2')) {
 // Architect standoff with Sorini in her True Form. The Guardians are
 // silently cleared mid-run; the duel is HELD — a face-off, not a fight.
 if (new URLSearchParams(location.search).has('standoff')) {
+  window.__trailerMode = true;
   bootShowcaseLevel(3, (lvl) => {
     lvl.trailerRun(getTrailerOverlay(), trailerAlive);
   });

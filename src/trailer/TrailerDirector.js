@@ -59,6 +59,7 @@ export class TrailerDirector {
     this._active = true;
     this._finishing = false;
     this._cancelled = false;
+    window.__trailerMode = true;   // trailer chain is running
 
     // Take the screen away from the main menu
     if (this._menuScene) this._menuScene.stop();
@@ -222,10 +223,11 @@ export class TrailerDirector {
     await this._sleep(600);
     if (!alive()) return;
 
-    // ── CARD 1 — HOME: she is asleep; the world is ordinary ──
+    // ─ CARD 1 — HOME: she is asleep; the world is ordinary ──
+    // Wide shot from the foot of the bed — full body + head visible
     this._cam.play([{
-      pos: [-2.4, 1.15, 1.7], look: [-0.5, 0.75, -1.2],
-      duration: 8500, transition: 0, drift: [1.5, 0.1, -0.6], ease: 'in-out',
+      pos: [-1.8, 2.0, 2.8], look: [-0.5, 0.6, -1.5],
+      duration: 8500, transition: 0, drift: [0.8, 0.05, -0.4], ease: 'in-out',
     }]);
     this._showCaption('Earth. A quiet night, like any other.');
     await this._sleep(5400); if (!alive()) return;

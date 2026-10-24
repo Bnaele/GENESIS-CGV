@@ -2011,6 +2011,11 @@ export class ArchitectLevel {
 
   _onArchitectLanded() {
     this.fightState = 'dialogue';
+    // Skip dialogue during trailer — just go straight to standoff
+    if (window.__trailerStandoff) {
+      this._holdStandoff();
+      return;
+    }
     this._runArchitectSequence();
   }
 
@@ -2086,7 +2091,8 @@ export class ArchitectLevel {
   // them simply face each other while the camera works the shot.
   _holdStandoff() {
     this.fightState = 'standoff';
-    if (window.__audioManager) window.__audioManager.resumeMusic();
+    // Don't resume level music during trailer — trailer music is already playing
+    if (!window.__trailerStandoff && window.__audioManager) window.__audioManager.resumeMusic();
 
     const cam = window.__cinematicCamera;
     if (!cam || typeof cam.play !== 'function') return;
@@ -2163,26 +2169,26 @@ export class ArchitectLevel {
       p.grounded = true;
     }
 
-    // ── beat 1 — EXTERIOR: wide shot of the moon surface, spaceship, monument, flag ──
+    // ── beat 1 — EXTERIOR: high top-down view of the moon surface ──
+    // Shows everything: Genesis ship, monument, flag, wreckage field
     cam.play([
       {
-        // High wide shot — Genesis ship on the right, monument ahead, flag visible
-        pos: [35, surf(35, 30) + 14, 30],
-        look: [5, surf(5, 0) + 2, 0],
+        pos: [0, 45, 50],
+        look: [0, 0, 0],
         duration: 10000, transition: 1600,
-        drift: [-0.8, -0.15, -1.2], ease: 'in-out',
+        drift: [-0.3, -0.1, -0.5], ease: 'in-out',
       },
     ]);
     await sleep(11000);
     if (!isAlive()) return;
 
-    // ── beat 2 — closer exterior: spaceship and the path to the monument ──
+    // ── beat 2 — closer but still wide: ship and monument together ──
     cam.play([
       {
-        pos: [22, surf(22, 20) + 6, 20],
-        look: [0, surf(0, 5) + 1.5, 5],
+        pos: [30, 20, 35],
+        look: [0, 2, 0],
         duration: 8000, transition: 1400,
-        drift: [0.6, -0.1, -0.9], ease: 'in-out',
+        drift: [0.3, -0.05, -0.4], ease: 'in-out',
       },
     ]);
     await sleep(9000);
@@ -2207,10 +2213,10 @@ export class ArchitectLevel {
       cam.play([{
         pos: [bp.x + 3.5, fy + 1.2, bp.z + 5.5],
         look: [bp.x, fy + 1.6, bp.z],
-        duration: 6500, transition: 600,
-        drift: [-0.45, 0.05, -0.6], ease: 'in-out',
+        duration: 1500, transition: 400,
+        drift: [-0.2, 0.02, -0.3], ease: 'in-out',
       }]);
-      await sleep(7300);
+      await sleep(1500);
       if (!isAlive()) return;
     }
 
@@ -2221,10 +2227,10 @@ export class ArchitectLevel {
       cam.play([{
         pos: [fp.x - 3.5, fy + 1.2, fp.z + 5.5],
         look: [fp.x, fy + 1.6, fp.z],
-        duration: 6500, transition: 600,
-        drift: [0.45, 0.05, -0.6], ease: 'in-out',
+        duration: 1500, transition: 400,
+        drift: [0.2, 0.02, -0.3], ease: 'in-out',
       }]);
-      await sleep(7300);
+      await sleep(1500);
       if (!isAlive()) return;
     }
 

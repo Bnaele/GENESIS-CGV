@@ -1868,13 +1868,14 @@ export class StreetLevel {
     p.grounded = true;
 
     // ─ beat 1 — wide establishing shot of the village ──
-    // High angle looking down the winding path, crashed ships visible
+    // High angle from far back, showing the whole valley:
+    // crashed ships, winding path, houses, Guardian in the distance
     cam.play([
       {
-        pos: [18, surf(18, 30) + 12, 30],
-        look: [this.pathX(10), surf(this.pathX(10), 10) + 1, 10],
+        pos: [30, 22, 55],
+        look: [0, 0, 0],
         duration: 9000, transition: 1400,
-        drift: [-0.6, -0.15, -1.0], ease: 'in-out',
+        drift: [-0.4, -0.1, -0.6], ease: 'in-out',
       },
     ]);
     await sleep(1200);
@@ -1885,17 +1886,16 @@ export class StreetLevel {
     if (!isAlive()) return;
 
     // ── beat 2 — The Guardian standing tall at the end of the path ──
-    // Spawn the commander if not already spawned, so we can show it
+    // Wide shot from a distance — Guardian visible but not up close
     if (!this.commanderSpawned) this._spawnCommander();
     const cmdPos = this.commander ? this.commander.getPosition() : { x: this.pathX(-58), y: surf(this.pathX(-58), -58), z: -58 };
 
     cam.play([
       {
-        // Low angle, looking up at the Guardian — imposing and tall
-        pos: [cmdPos.x + 5, cmdPos.y + 1.2, cmdPos.z + 8],
-        look: [cmdPos.x, cmdPos.y + 2.5, cmdPos.z],
+        pos: [20, 14, -30],
+        look: [cmdPos.x, cmdPos.y + 2, cmdPos.z],
         duration: 8000, transition: 1400,
-        drift: [-0.3, 0.05, -0.5], ease: 'in-out',
+        drift: [-0.3, 0.05, -0.4], ease: 'in-out',
       },
     ]);
     await sleep(1200);
@@ -1905,12 +1905,12 @@ export class StreetLevel {
     await sleep(3000);
     if (!isAlive()) return;
 
-    // ── beat 3 — final subtitle ──
+    // ── beat 3 — final wide shot with Sorini + Guardian in frame ──
     cam.play([{
-      pos: [cmdPos.x - 4, cmdPos.y + 2.0, cmdPos.z + 6],
-      look: [cmdPos.x, cmdPos.y + 2.2, cmdPos.z],
+      pos: [15, 10, -40],
+      look: [0, 1, -20],
       duration: 7000, transition: 1200,
-      drift: [0.4, -0.05, -0.4], ease: 'in-out',
+      drift: [0.3, -0.05, -0.3], ease: 'in-out',
     }]);
     await sleep(1000);
     overlay.showCaption('Will she be able to?');
