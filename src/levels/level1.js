@@ -744,6 +744,7 @@ export class StreetLevel {
   }
 
   _buildColliders() {
+    // ── Path marker pillars ──
     for (const gz of [42, 16, -12, -38]) {
       const gx = this.pathX(gz);
       const dz = 0.6;
@@ -754,18 +755,70 @@ export class StreetLevel {
         this._addBoxCollider(px, pz, 0.4, 0.4, 4.4, this._h(gx, gz));
       }
     }
+    // ── Central platform ──
     this._addBoxCollider(14, 18, 5.5, 5.5, 1.2, -1.0);
-    const hx = this.pathX(40) - 9;
-    this._addBoxCollider(hx, 40, 3.7, 3.2, 4, this._h(hx, 40));
+    // ── Small structures along the path ──
     const s1x = this.pathX(30) - 5;
     this._addBoxCollider(s1x, 30, 1.8, 1.0, 3, this._h(s1x, 30));
     const s2x = this.pathX(18) + 5;
     this._addBoxCollider(s2x, 18, 1.8, 1.0, 3, this._h(s2x, 18));
     const s3x = this.pathX(6) + 5;
     this._addBoxCollider(s3x, 6, 1.8, 1.0, 3, this._h(s3x, 6));
+    // ── Ship graveyard pillars ──
     const sx = this.pathX(-58), sz = -58, sy = this._h(sx, sz);
     for (const [cx, cz] of [[-2.8, -2.3], [2.8, -2.3], [-2.8, 2.3], [2.8, 2.3]]) {
       this._addBoxCollider(sx + cx, sz + cz, 0.4, 0.4, 4, sy);
+    }
+    // ── ALL houses — 9 houses along the village path ──
+    const houseDefs = [
+      { z: 55, side: -8,  scale: 1.15 },
+      { z: 42, side:  9,  scale: 0.95 },
+      { z: 28, side: -10, scale: 1.0 },
+      { z: 12, side:  10, scale: 0.9 },
+      { z: -8, side: -9,  scale: 1.05 },
+      { z: 68, side: -10, scale: 1.0 },
+      { z: 72, side:  11, scale: 1.05 },
+      { z: 78, side: -12, scale: 0.95 },
+      { z: 80, side:  10, scale: 1.1 },
+    ];
+    for (const def of houseDefs) {
+      const hx = this.pathX(def.z) + def.side;
+      const hz = def.z;
+      const hy = this._h(hx, hz);
+      const w = 4 * def.scale, d = 3.2 * def.scale, h = 2.6 * def.scale;
+      // House body: platform (0.25) + walls (h) + roof (~1.5)
+      this._addBoxCollider(hx, hz, w * 0.55, d * 0.55, 0.25 + h + 1.5, hy);
+    }
+    // ── ALL fence sections — 12 fences along the path ──
+    const fenceDefs = [
+      { z: 58, side: -2.8 }, { z: 52, side: -2.8 },
+      { z: 46, side: 3.0 },  { z: 40, side: 3.0 },
+      { z: 32, side: -3.0 }, { z: 26, side: -3.0 },
+      { z: 18, side: 3.0 },  { z: 12, side: 3.0 },
+      { z: 4, side: -3.0 },  { z: -2, side: -3.0 },
+      { z: -12, side: 3.0 }, { z: -18, side: 3.0 },
+    ];
+    for (const def of fenceDefs) {
+      const fx = this.pathX(def.z) + def.side;
+      const fz = def.z;
+      const fy = this._h(fx, fz);
+      // Fence: 4 units long, 1.2 units tall
+      this._addBoxCollider(fx, fz, 2.2, 0.3, 1.2, fy);
+    }
+    // ── ALL crashed ships — 6 ships scattered around ──
+    const shipDefs = [
+      { x: 24, z: 24, scale: 1.0 },
+      { x: -32, z: 45, scale: 0.85 },
+      { x: 38, z: -20, scale: 1.0 },
+      { x: -30, z: -35, scale: 0.9 },
+      { x: 15, z: 60, scale: 0.7 },
+      { x: -40, z: 20, scale: 0.75 },
+    ];
+    for (const def of shipDefs) {
+      const sy = this._h(def.x, def.z);
+      const s = def.scale;
+      // Hull is 6x2.2x3.5, scaled. Collider covers the main body.
+      this._addBoxCollider(def.x, def.z, 3.5 * s, 2.2 * s, 3.0 * s, sy);
     }
   }
 

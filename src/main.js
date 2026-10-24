@@ -28,6 +28,7 @@ import {
   recordPlayTime, attackAccuracy, computeRank, parForLevel,
 } from './utils/stats.js';
 import { createLoadingScreen, updateLoadingScreen } from './ui/LoadingScreen.js';
+import { worldColliders } from './physics/CollisionSystem.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 
 // ---------- renderer ----------
@@ -1071,6 +1072,15 @@ function switchLevel(n, opts = {}) {
 
   if (!Array.isArray(level.colliders)) level.colliders = [];
   if (!level.name) level.name = `LEVEL ${n}`;
+
+  // ── Register level colliders to the global worldColliders registry ──
+  // Enemies (grunts, guardians, etc.) resolve against worldColliders,
+  // so every level must push its colliders there. Clear stale entries
+  // from the previous level first.
+  worldColliders.length = 0;
+  for (const c of level.colliders) {
+    if (c && !worldColliders.includes(c)) worldColliders.push(c);
+  }
 
   player.pos.copy(level.spawn);
   player.vel.set(0, 0, 0);

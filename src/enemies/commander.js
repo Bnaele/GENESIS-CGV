@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { recordKO, recordDamageDealt } from '../utils/stats.js';
 import { StateTimers } from '../utils/StateTimers.js';
 import { loadGruntAssets } from './grunts.js';
+import { resolveEntity, worldColliders } from '../physics/CollisionSystem.js';
 
 export class Commander {
   /**
@@ -185,6 +186,9 @@ export class Commander {
     } else {
       this._updateIdleBehavior(delta, toPlayer, distance);
     }
+
+    // ── Collision resolution — push commander out of walls/houses/fences ──
+    resolveEntity(this.position, worldColliders, 0.7, 2.5);
 
     // Keep feet on the terrain across slopes and charges
     if (this.heightAt) this.position.y = this.heightAt(this.position.x, this.position.z);

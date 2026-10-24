@@ -6,6 +6,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { recordKO, recordDamageDealt } from '../utils/stats.js';
 import { applyDissolveToModel, sharedDissolveNoise } from '../shaders/shaders.js';
+import { resolveEntity, worldColliders } from '../physics/CollisionSystem.js';
 
 // ── Root motion stripper ──
 // Removes horizontal drift from Hips track so animations play in place
@@ -270,6 +271,9 @@ export class Grunt {
     } else {
       this._updateChase(delta, playerPos, toPlayer, distance);
     }
+
+    // ── Collision resolution — push grunt out of walls/houses/fences ──
+    resolveEntity(this.position, worldColliders, 0.45, 2.0);
 
     // Keep feet on the terrain — grunts travel over slopes and would
     // otherwise stay frozen at their spawn height
