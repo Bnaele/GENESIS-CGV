@@ -1471,7 +1471,13 @@ function showCreditsOverlay() {
     creditsDiv.innerHTML = `
     <h1 style="color: #00ffff; font-size: 36px; margin: auto auto 30px;">CREDITS</h1>
     <div style="text-align: left; font-size: 15px; line-height: 1.7; color: #aaa; max-width: 720px;">
-      <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 10px;">LIBRARIES</h2>
+      <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 10px;">AI ASSISTANCE ACKNOWLEDGMENT</h2>
+      <p>This project was developed with the assistance of AI tools:</p>
+      <p>● <strong style="color: #00ffff;">Qoder</strong> — AI-powered coding assistant for code generation, debugging, documentation, and technical implementation</p>
+      <p>● <strong style="color: #00ffff;">DeepSeek</strong> — AI language model for code review, problem-solving, and development support</p>
+      <p style="font-size: 13px; color: #666; margin-left: 20px; margin-top: 8px;">AI tools were used under human supervision. All creative decisions, game design, and final code ownership remain with the development team.</p>
+
+      <h2 style="color: #ffffff; font-size: 20px; margin-top: 24px; margin-bottom: 10px;">LIBRARIES</h2>
       <p>● Three.js r186 (MIT) — renderer, animation, FBX/glTF loaders - <a href="https://threejs.org" style="color: #00ffff;">threejs.org</a></p>
       <p>● Howler.js 2.2 (MIT) — audio playback - <a href="https://howlerjs.com" style="color: #00ffff;">howlerjs.com</a></p>
       <p>● Vite 8 (MIT) — build tool - <a href="https://vitejs.dev" style="color: #00ffff;">vitejs.dev</a></p>
