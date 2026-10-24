@@ -1631,7 +1631,20 @@ const trailerDirector = new TrailerDirector({
         if (!trailerAlive()) return;
         window.__trailerLevel2 = false;
         bootShowcaseLevel(3, (l3) => {
-          l3.trailerRun(getTrailerOverlay(), trailerAlive);
+          l3.trailerRun(getTrailerOverlay(), trailerAlive).then(() => {
+            // ── END CARD — after Level 3 showcase ──
+            if (!trailerAlive()) return;
+            const overlay = getTrailerOverlay();
+            overlay.titleCard('GENESIS', 'COMING SOON', 4000).then(() => {
+              overlay.fadeOut(1200);
+              trailerOverlay = null;
+              window.__trailerAlive = false;
+              // Return to menu
+              uiManager.showScreen('main-menu');
+              if (menuScene) menuScene.start();
+              if (menuCanvas) menuCanvas.style.display = '';
+            });
+          });
         });
       });
     });

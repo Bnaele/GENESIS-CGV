@@ -205,9 +205,21 @@ export class TrailerDirector {
     const P = this.prelude;
     const alive = () => this._active && !this._cancelled;
 
+    // ── TITLE CARD — GENESIS ──
+    this._setPagesOpen(true);
+    await this._sleep(600);
+    if (!alive()) return;
+    // Start the music immediately — level_3_electronic drives the whole trailer
+    this._audio.playMusic('level_3_electronic');
+    this._audio.setMusicVolume(0.45);
+    await this._overlay.titleCard('GENESIS', '', 2800);
+    if (!alive()) return;
+    await this._sleep(800);
+    if (!alive()) return;
+
     // The book starts closed over a black screen — open onto HOME
     this._setPagesOpen(true);
-    await this._sleep(1000);
+    await this._sleep(600);
     if (!alive()) return;
 
     // ── CARD 1 — HOME: she is asleep; the world is ordinary ──
@@ -304,8 +316,8 @@ export class TrailerDirector {
       P.setArtifactIntensity(1.4);
     });
     if (!alive()) return;
-    this._audio.playMusic('level_1_chiptune');
-    this._audio.setMusicVolume(0.32);
+    // Music already playing from title card — just adjust volume for the invasion
+    this._audio.setMusicVolume(0.55);
     this._cam.play([{
       pos: [1.2, 0.6, -3.6], look: [0, 1.5, 5],
       duration: 11000, transition: 0, drift: [-0.5, 0.4, 1.2], ease: 'in-out',
