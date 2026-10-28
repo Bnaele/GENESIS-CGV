@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tagline — The Axiom chose her (1:27-1:29)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            background: #000000;
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+        }
+
+        .scene {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Subtle background glow */
+        .bg-glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0;
+            animation: fadeInGlow 1.5s ease-out 0.2s forwards;
+        }
+
+        /* Tagline text */
+        .tagline {
+            font-size: 64px;
+            font-weight: 300;
+            font-style: italic;
+            letter-spacing: 3px;
+            color: #e0e0e0;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3),
+                         0 2px 4px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            text-align: center;
+            line-height: 1.4;
+            max-width: 1400px;
+            animation: revealTagline 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Decorative quote marks */
+        .quote-left, .quote-right {
+            position: absolute;
+            font-size: 180px;
+            font-weight: 100;
+            color: rgba(255, 255, 255, 0.15);
+            opacity: 0;
+            animation: fadeInQuotes 1.5s ease-out 0.5s forwards;
+        }
+
+        .quote-left {
+            top: 280px;
+            left: 180px;
+        }
+
+        .quote-right {
+            bottom: 280px;
+            right: 180px;
+        }
+
+        /* Subtle line accents */
+        .accent-line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
+            opacity: 0;
+            animation: revealLine 1.5s ease-out 0.6s forwards;
+        }
+
+        .accent-line-top {
+            top: 380px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+        }
+
+        .accent-line-bottom {
+            bottom: 380px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+        }
+
+        /* Animations */
+        @keyframes fadeInGlow {
+            to { opacity: 1; }
+        }
+
+        @keyframes revealTagline {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+                letter-spacing: 8px;
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+                letter-spacing: 3px;
+            }
+        }
+
+        @keyframes fadeInQuotes {
+            to { opacity: 1; }
+        }
+
+        @keyframes revealLine {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) scaleX(0);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) scaleX(1);
+            }
+        }
+
+        /* Recording hint */
+        .recording-hint {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .recording-hint button {
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .recording-hint button:hover {
+            background: #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="recording-hint">
+        <strong>📹 Tagline Card</strong><br>
+        Duration: 2 seconds (1:27-1:29)<br>
+        Resolution: 1920×1080 @ 60 FPS<br>
+        <button onclick="this.parentElement.style.display='none'">Hide This</button>
+    </div>
+
+    <div class="scene">
+        <!-- Background glow -->
+        <div class="bg-glow"></div>
+
+        <!-- Decorative quotes -->
+        <div class="quote-left">"</div>
+        <div class="quote-right">"</div>
+
+        <!-- Accent lines -->
+        <div class="accent-line accent-line-top"></div>
+        <div class="accent-line accent-line-bottom"></div>
+
+        <!-- Tagline text -->
+        <div class="tagline">
+            The Axiom chose her.<br>
+            Its maker wants it back.
+        </div>
+    </div>
+</body>
+</html>

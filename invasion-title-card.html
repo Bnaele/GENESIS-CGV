@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INVASION — GENESIS Trailer Title Card</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: 'Arial Black', 'Arial Bold', sans-serif;
+        }
+
+        .scene {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1a0505 0%, #2d0a0a 40%, #4a1515 70%, #6b1f1f 100%);
+            overflow: hidden;
+        }
+
+        /* Stars */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 60%;
+            top: 0;
+            opacity: 0;
+            animation: fadeInStars 2s ease-in 0.3s forwards;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        /* Blood Moon */
+        .moon {
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            top: 80px;
+            right: 350px;
+            background: radial-gradient(circle at 40% 40%, #ff6b6b 0%, #c94444 40%, #8b2d2d 80%);
+            border-radius: 50%;
+            box-shadow: 0 0 80px rgba(255, 107, 107, 0.6), 0 0 120px rgba(201, 68, 68, 0.4);
+            opacity: 0;
+            animation: revealMoon 2s ease-out 0.5s forwards;
+        }
+
+        .moon::before {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(139, 45, 45, 0.3);
+            border-radius: 50%;
+            top: 80px;
+            left: 100px;
+        }
+
+        .moon::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(139, 45, 45, 0.25);
+            border-radius: 50%;
+            top: 140px;
+            left: 60px;
+        }
+
+        /* Mount Fuji */
+        .mountain {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            animation: revealMountain 2s ease-out 0.8s forwards;
+        }
+
+        /* Torii Gate */
+        .torii {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            animation: revealTorii 1.5s ease-out 1.2s forwards;
+        }
+
+        /* Pagoda */
+        .pagoda {
+            position: absolute;
+            bottom: 180px;
+            left: 280px;
+            opacity: 0;
+            animation: revealPagoda 1.5s ease-out 1.4s forwards;
+        }
+
+        /* Traditional Buildings */
+        .buildings {
+            position: absolute;
+            bottom: 180px;
+            right: 250px;
+            opacity: 0;
+            animation: revealBuildings 1.5s ease-out 1.3s forwards;
+        }
+
+        /* Ships */
+        .ships {
+            position: absolute;
+            bottom: 280px;
+            left: 150px;
+            opacity: 0;
+            animation: revealShips 1.5s ease-out 1.6s forwards;
+        }
+
+        /* Title Text */
+        .title {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 180px;
+            font-weight: 900;
+            letter-spacing: 25px;
+            color: #ff4444;
+            text-shadow: 0 0 30px rgba(255, 68, 68, 0.8),
+                         0 0 60px rgba(255, 68, 68, 0.6),
+                         0 4px 8px rgba(0, 0, 0, 0.9);
+            opacity: 0;
+            animation: revealTitle 1.5s ease-out 1.8s forwards;
+            z-index: 100;
+        }
+
+        /* Fog/Mist */
+        .fog {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(to top, rgba(26, 5, 5, 0.8) 0%, transparent 100%);
+            opacity: 0;
+            animation: fadeInFog 2s ease-in 1s forwards;
+        }
+
+        /* Animations */
+        @keyframes fadeInStars {
+            to { opacity: 0.6; }
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes revealMoon {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes revealMountain {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes revealTorii {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) scale(1);
+            }
+        }
+
+        @keyframes revealPagoda {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes revealBuildings {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes revealShips {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes revealTitle {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+                letter-spacing: 40px;
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+                letter-spacing: 25px;
+            }
+        }
+
+        @keyframes fadeInFog {
+            to { opacity: 1; }
+        }
+
+        /* Recording hint - remove when recording */
+        .recording-hint {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .recording-hint button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+        }
+
+        .recording-hint button:hover {
+            background: #ff5555;
+        }
+    </style>
+</head>
+<body>
+    <div class="recording-hint">
+        <strong>📹 Recording Mode</strong><br>
+        Duration: 3 seconds (0:06-0:09)<br>
+        Resolution: 1920×1080 @ 60 FPS<br>
+        <button onclick="this.parentElement.style.display='none'">Hide This</button>
+    </div>
+
+    <div class="scene">
+        <!-- Stars -->
+        <div class="stars">
+            <div class="star" style="width: 2px; height: 2px; top: 15%; left: 20%; animation-delay: 0s;"></div>
+            <div class="star" style="width: 3px; height: 3px; top: 25%; left: 45%; animation-delay: 0.5s;"></div>
+            <div class="star" style="width: 2px; height: 2px; top: 10%; left: 70%; animation-delay: 1s;"></div>
+            <div class="star" style="width: 2px; height: 2px; top: 35%; left: 85%; animation-delay: 1.5s;"></div>
+            <div class="star" style="width: 3px; height: 3px; top: 20%; left: 30%; animation-delay: 0.8s;"></div>
+            <div class="star" style="width: 2px; height: 2px; top: 40%; left: 60%; animation-delay: 1.2s;"></div>
+            <div class="star" style="width: 2px; height: 2px; top: 30%; left: 15%; animation-delay: 0.3s;"></div>
+            <div class="star" style="width: 3px; height: 3px; top: 18%; left: 90%; animation-delay: 1.8s;"></div>
+        </div>
+
+        <!-- Blood Moon -->
+        <div class="moon"></div>
+
+        <!-- Mount Fuji -->
+        <svg class="mountain" width="1200" height="600" viewBox="0 0 1200 600">
+            <defs>
+                <linearGradient id="mountainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#2d2d2d;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="snowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+                    <stop offset="100%" style="stop-color:#dddddd;stop-opacity:0.7" />
+                </linearGradient>
+            </defs>
+            <!-- Mountain body -->
+            <path d="M 600 100 L 200 600 L 1000 600 Z" fill="url(#mountainGrad)" />
+            <!-- Snow cap -->
+            <path d="M 600 100 L 520 200 L 680 200 Z" fill="url(#snowGrad)" />
+            <!-- Mountain ridges -->
+            <path d="M 600 100 L 400 400 L 450 420 L 600 150 L 750 420 L 800 400 Z" fill="rgba(0,0,0,0.2)" />
+        </svg>
+
+        <!-- Torii Gate -->
+        <svg class="torii" width="400" height="350" viewBox="0 0 400 350">
+            <defs>
+                <linearGradient id="toriiGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#cc3333;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#992222;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- Main pillars -->
+            <rect x="80" y="100" width="30" height="250" fill="url(#toriiGrad)" />
+            <rect x="290" y="100" width="30" height="250" fill="url(#toriiGrad)" />
+            <!-- Top beam (kasagi) -->
+            <rect x="50" y="70" width="300" height="35" fill="url(#toriiGrad)" rx="5" />
+            <!-- Second beam (nuki) -->
+            <rect x="70" y="130" width="260" height="25" fill="url(#toriiGrad)" />
+            <!-- Top cap -->
+            <path d="M 40 70 L 200 40 L 360 70 Z" fill="#aa2222" />
+            <!-- Decorative elements -->
+            <rect x="190" y="105" width="20" height="30" fill="#992222" />
+        </svg>
+
+        <!-- Pagoda -->
+        <svg class="pagoda" width="200" height="300" viewBox="0 0 200 300">
+            <defs>
+                <linearGradient id="pagodaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3d3d3d;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2a2a2a;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- Base -->
+            <rect x="60" y="250" width="80" height="50" fill="url(#pagodaGrad)" />
+            <!-- Levels -->
+            <rect x="50" y="200" width="100" height="50" fill="url(#pagodaGrad)" />
+            <path d="M 40 200 L 100 180 L 160 200 Z" fill="#2d2d2d" />
+            
+            <rect x="55" y="150" width="90" height="50" fill="url(#pagodaGrad)" />
+            <path d="M 45 150 L 100 130 L 155 150 Z" fill="#2d2d2d" />
+            
+            <rect x="60" y="100" width="80" height="50" fill="url(#pagodaGrad)" />
+            <path d="M 50 100 L 100 80 L 150 100 Z" fill="#2d2d2d" />
+            
+            <!-- Spire -->
+            <rect x="95" y="50" width="10" height="30" fill="#3d3d3d" />
+            <circle cx="100" cy="45" r="8" fill="#4d4d4d" />
+        </svg>
+
+        <!-- Traditional Buildings -->
+        <svg class="buildings" width="300" height="250" viewBox="0 0 300 250">
+            <defs>
+                <linearGradient id="buildingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3a3a3a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#252525;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- Building 1 -->
+            <rect x="20" y="150" width="80" height="100" fill="url(#buildingGrad)" />
+            <path d="M 10 150 L 60 120 L 110 150 Z" fill="#2d2d2d" />
+            <rect x="40" y="180" width="15" height="20" fill="#ffaa44" opacity="0.6" />
+            <rect x="65" y="180" width="15" height="20" fill="#ffaa44" opacity="0.6" />
+            
+            <!-- Building 2 -->
+            <rect x="120" y="130" width="90" height="120" fill="url(#buildingGrad)" />
+            <path d="M 110 130 L 165 95 L 220 130 Z" fill="#2d2d2d" />
+            <rect x="140" y="160" width="15" height="20" fill="#ffaa44" opacity="0.6" />
+            <rect x="165" y="160" width="15" height="20" fill="#ffaa44" opacity="0.6" />
+            <rect x="140" y="200" width="15" height="20" fill="#ffaa44" opacity="0.6" />
+            <rect x="165" y="200" width="15" height="20" fill="#ffaa44" opacity="0.6" />
+            
+            <!-- Building 3 -->
+            <rect x="230" y="160" width="70" height="90" fill="url(#buildingGrad)" />
+            <path d="M 220 160 L 265 135 L 310 160 Z" fill="#2d2d2d" />
+            <rect x="250" y="190" width="12" height="18" fill="#ffaa44" opacity="0.6" />
+        </svg>
+
+        <!-- Ships -->
+        <svg class="ships" width="250" height="150" viewBox="0 0 250 150">
+            <defs>
+                <linearGradient id="shipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4a4a4a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2d2d2d;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- Ship 1 -->
+            <ellipse cx="60" cy="100" rx="50" ry="15" fill="url(#shipGrad)" />
+            <rect x="55" y="60" width="10" height="40" fill="#3d3d3d" />
+            <path d="M 65 60 L 65 80 L 90 70 Z" fill="#555555" opacity="0.7" />
+            
+            <!-- Ship 2 -->
+            <ellipse cx="160" cy="90" rx="45" ry="13" fill="url(#shipGrad)" />
+            <rect x="155" y="55" width="8" height="35" fill="#3d3d3d" />
+            <path d="M 163 55 L 163 72 L 185 63 Z" fill="#555555" opacity="0.7" />
+            
+            <!-- Ship 3 (distant) -->
+            <ellipse cx="210" cy="70" rx="30" ry="8" fill="url(#shipGrad)" opacity="0.6" />
+            <rect x="207" y="50" width="6" height="20" fill="#3d3d3d" opacity="0.6" />
+        </svg>
+
+        <!-- Title -->
+        <div class="title">INVASION</div>
+
+        <!-- Fog -->
+        <div class="fog"></div>
+    </div>
+</body>
+</html>

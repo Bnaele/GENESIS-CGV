@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMING SOON — Final Card (1:29-1:30)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            background: #000000;
+            font-family: 'Arial Black', 'Arial Bold', sans-serif;
+        }
+
+        .scene {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Subtle background pulse */
+        .bg-pulse {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Main text */
+        .coming-soon {
+            font-size: 120px;
+            font-weight: 900;
+            letter-spacing: 20px;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.4),
+                         0 0 60px rgba(255, 255, 255, 0.2),
+                         0 4px 8px rgba(0, 0, 0, 0.9);
+            opacity: 0;
+            animation: revealText 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Decorative lines above and below */
+        .line-top, .line-bottom {
+            position: absolute;
+            width: 400px;
+            height: 3px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.7), transparent);
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            animation: revealLine 1.2s ease-out 0.4s forwards;
+        }
+
+        .line-top {
+            top: 380px;
+        }
+
+        .line-bottom {
+            bottom: 380px;
+        }
+
+        /* Small accent dots */
+        .dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            opacity: 0;
+            animation: fadeInDot 1s ease-out 0.6s forwards;
+        }
+
+        .dot-left {
+            left: 680px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dot-right {
+            right: 680px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 0.3;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.5;
+                transform: scale(1.15);
+            }
+        }
+
+        @keyframes revealText {
+            0% {
+                opacity: 0;
+                transform: scale(0.85);
+                letter-spacing: 35px;
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                letter-spacing: 20px;
+            }
+        }
+
+        @keyframes revealLine {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) scaleX(0);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) scaleX(1);
+            }
+        }
+
+        @keyframes fadeInDot {
+            to { opacity: 0.6; }
+        }
+
+        /* Recording hint */
+        .recording-hint {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .recording-hint button {
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .recording-hint button:hover {
+            background: #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="recording-hint">
+        <strong>📹 COMING SOON Card</strong><br>
+        Duration: 1 second (1:29-1:30)<br>
+        Resolution: 1920×1080 @ 60 FPS<br>
+        <button onclick="this.parentElement.style.display='none'">Hide This</button>
+    </div>
+
+    <div class="scene">
+        <!-- Background pulse -->
+        <div class="bg-pulse"></div>
+
+        <!-- Decorative lines -->
+        <div class="line-top"></div>
+        <div class="line-bottom"></div>
+
+        <!-- Accent dots -->
+        <div class="dot dot-left"></div>
+        <div class="dot dot-right"></div>
+
+        <!-- Main text -->
+        <div class="coming-soon">COMING SOON</div>
+    </div>
+</body>
+</html>
